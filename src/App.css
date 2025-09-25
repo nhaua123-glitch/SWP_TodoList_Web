@@ -14,19 +14,60 @@
 }
 
 .App-header {
-  background-color: #282c34;
+  background-color: #214ca3;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: white;
+  color: rgb(219, 204, 204);
 }
 
 .App-link {
-  color: #61dafb;
+  color: #783bae;
 }
+
+/* Nền ngày hôm nay */
+.rbc-today {
+  background: #fbe1f8 !important;
+}
+
+/* Header của ngày */
+.rbc-header {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #444;
+  border-bottom: 1px solid #ddd !important;
+  padding: 6px 0;
+  text-align: center;
+}
+
+/* Grid tháng */
+.rbc-month-view {
+  border: none !important;
+}
+
+/* Event mặc định */
+.rbc-event {
+  border-radius: 8px !important;
+  padding: 4px 6px !important;
+  font-size: 0.85rem;
+  border: none !important;
+}
+
+/* Week & Day view */
+.rbc-time-view {
+  border: none !important;
+}
+
+.rbc-time-content .rbc-event {
+  border-radius: 6px !important;
+  padding: 4px !important;
+  font-size: 0.85rem;
+}
+
+
 
 @keyframes App-logo-spin {
   from {
