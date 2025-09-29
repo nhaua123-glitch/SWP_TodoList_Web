@@ -1,41 +1,79 @@
+
 # Demo-Todolist
 Website theo dõi thói quen
 
 ---
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ứng dụng Next.js với Supabase Authentication
 
-## Getting Started
+Ứng dụng Next.js sử dụng Supabase để xác thực người dùng, bao gồm đăng ký, đăng nhập và quản lý phiên đăng nhập.
 
-First, run the development server:
+Ứng dụng Next.js sử dụng Supabase để xác thực người dùng, bao gồm đăng ký, đăng nhập và quản lý phiên đăng nhập.
+
+## Tính năng
+
+- Đăng ký người dùng
+- Đăng nhập
+- Đăng xuất
+- Bảo vệ route với middleware
+- Dashboard người dùng
+
+## Cài đặt
+
+1. Clone repository
+
+```bash
+git clone <repository-url>
+cd my-app
+```
+
+2. Cài đặt dependencies
+
+```bash
+npm install
+```
+
+3. Thiết lập Supabase
+
+- Tạo tài khoản tại [Supabase](https://supabase.com)
+- Tạo dự án mới
+- Lấy URL và Anon Key từ dự án của bạn
+- Tạo file `.env.local` từ file `.env.local.example` và điền thông tin Supabase của bạn
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-url.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+> **Lưu ý**: Biến `NEXT_PUBLIC_SITE_URL` được sử dụng cho chức năng xác thực email và chuyển hướng sau khi xác thực.
+
+## Chạy ứng dụng
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ứng dụng sẽ chạy tại [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Cấu trúc dự án
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/app` - Các trang và components của ứng dụng
+- `/app/api` - API routes
+- `/lib` - Thư viện và utilities
+- `/public` - Tài nguyên tĩnh
 
-## Learn More
+## API Routes
 
-To learn more about Next.js, take a look at the following resources:
+- `/api/auth/register` - Đăng ký người dùng mới
+- `/api/auth/login` - Đăng nhập
+- `/api/auth/logout` - Đăng xuất
+- `/api/auth/user` - Lấy thông tin người dùng hiện tại
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Công nghệ sử dụng
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js](https://nextjs.org/)
+- [React](https://reactjs.org/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Supabase](https://supabase.com/)
+- [TailwindCSS](https://tailwindcss.com/)
