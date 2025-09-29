@@ -5,10 +5,8 @@ import { useRouter } from "next/navigation";
 export default function LoginPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    username: "",
     email: "",
-    password: "",
-    confirmPassword: ""
+    password: ""
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,59 +23,54 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     
-    // Kiểm tra mật khẩu xác nhận
-    if (formData.password !== formData.confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp");
-      return;
-    }
-    
     try {
       setLoading(true);
-      const response = await fetch("/api/auth/register", {
+      console.log("Đang gửi request login...");
+      
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          username: formData.username,
           email: formData.email,
           password: formData.password
         })
       });
       
+      console.log("Response status:", response.status);
       const data = await response.json();
+      console.log("Response data:", data);
       
       if (!response.ok) {
-        throw new Error(data.error || "Đăng ký thất bại");
+        throw new Error(data.error || "Đăng nhập thất bại");
       }
       
-      // Hiển thị thông báo thành công và hướng dẫn xác thực email
-      setError("");
-      setFormData({
-        username: "",
-        email: "",
-        password: "",
-        confirmPassword: ""
-      });
-      
-      // Thông báo thành công
-      alert("Đăng ký thành công! Bạn có thể đăng nhập ngay bây giờ.");
-      
-      // Chuyển hướng đến trang đăng nhập
-      router.push("/login");
+      // Kiểm tra session và user data
+      if (data.session && data.user) {
+        console.log("Login thành công, đang redirect...");
+        // Thêm delay nhỏ để đảm bảo session được lưu
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 100);
+      } else {
+        throw new Error("Không nhận được thông tin session");
+      }
     } catch (err: any) {
+      console.error("Login error:", err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+
   return (
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-gradient-to-r from-pink-50 to-purple-100">
       {/* Form bên trái */}
       <div className="flex items-center justify-center p-10">
         <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md">
           <h2 className="text-2xl font-bold mb-6 text-center text-gray-700">
-            Create Account
+            Đăng Nhập
           </h2>
 
           {error && (
@@ -87,15 +80,6 @@ export default function LoginPage() {
           )}
           
           <form className="space-y-4" onSubmit={handleSubmit}>
-            <input
-              type="text"
-              name="username"
-              placeholder="Username"
-              value={formData.username}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
             <input
               type="email"
               name="email"
@@ -108,18 +92,8 @@ export default function LoginPage() {
             <input
               type="password"
               name="password"
-              placeholder="Password"
+              placeholder="Mật khẩu"
               value={formData.password}
-              onChange={handleChange}
-              required
-              minLength={6}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
-            <input
-              type="password"
-              name="confirmPassword"
-              placeholder="Confirm Password"
-              value={formData.confirmPassword}
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300"
@@ -130,14 +104,14 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-pink-400 text-white py-2 rounded-lg hover:bg-pink-500 transition disabled:bg-pink-300 disabled:cursor-not-allowed"
             >
-              {loading ? "Đang xử lý..." : "Sign Up"}
+              {loading ? "Đang xử lý..." : "Đăng Nhập"}
             </button>
           </form>
 
           <p className="mt-4 text-center text-gray-600">
-            Already have an account?{" "}
-            <a href="/login" className="text-pink-500 hover:underline">
-              Sign In
+            Chưa có tài khoản?{" "}
+            <a href="/" className="text-pink-500 hover:underline">
+              Đăng Ký
             </a>
           </p>
         </div>
