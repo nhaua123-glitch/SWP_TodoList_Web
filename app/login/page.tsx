@@ -1,17 +1,25 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import styles from './login.module.css';
 
 export default function LoginPage() {
   const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const username = e.target.username.value;
-    const password = e.target.password.value;
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const username = String(formData.get("username") || "");
+    const password = String(formData.get("password") || "");
 
     // Demo check giả lập
-    if (username !== "admin" || password !== "123") {
+    // Kiểm tra user trong localStorage (nếu có) hoặc dùng demo mặc định
+    const raw = typeof window !== "undefined" ? localStorage.getItem("users") : null;
+    const users: Array<{ username: string; password: string }> = raw ? JSON.parse(raw) : [];
+    const matched = users.find(u => u.username === username && u.password === password);
+
+    if (!matched && (username !== "admin" || password !== "123")) {
       setError("Sai username hoặc mật khẩu!");
     } else {
       setError("");
@@ -31,6 +39,9 @@ export default function LoginPage() {
             <label htmlFor="password">Password</label>
             <input id="password" type="password" name="password" />
             <button type="submit">Login</button>
+            <p style={{ marginTop: 10 }}>
+              Chưa có tài khoản? <Link href="/signup">Đăng ký</Link>
+            </p>
             {error && <p className={styles.error}>{error}</p>}
           </form>
         </div>
