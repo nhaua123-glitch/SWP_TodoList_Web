@@ -3,8 +3,6 @@ import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import enUS from "date-fns/locale/en-US";
 import { createClient } from "@supabase/supabase-js";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "./App.css";
 
