@@ -2,7 +2,7 @@
   text-align: center;
 }
 
-.App-logo {
+/* .App-logo {
   height: 40vmin;
   pointer-events: none;
 }
@@ -11,10 +11,10 @@
   .App-logo {
     animation: App-logo-spin infinite 20s linear;
   }
-}
+} */
 
-.App-header {
-  background-color: #214ca3;
+/* .App-header {
+  background-color: #447be9;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -22,10 +22,15 @@
   justify-content: center;
   font-size: calc(10px + 2vmin);
   color: rgb(219, 204, 204);
-}
+} */
 
-.App-link {
+/* .App-link {
   color: #783bae;
+} */
+
+.rbc-calendar {
+  color: #f9c8c8; /* thay #333 bằng màu bạn muốn, ví dụ #222, #444, hoặc trắng nếu nền tối */
+  font-family: "Segoe UI", Arial, sans-serif;
 }
 
 /* Nền ngày hôm nay */
@@ -37,8 +42,8 @@
 .rbc-header {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #444;
-  border-bottom: 1px solid #ddd !important;
+  color: #faaeae;
+  border-bottom: 1px solid #e7c5c5 !important;
   padding: 6px 0;
   text-align: center;
 }
@@ -49,17 +54,17 @@
 }
 
 /* Event mặc định */
-.rbc-event {
+/* .rbc-event {
   border-radius: 8px !important;
   padding: 4px 6px !important;
   font-size: 0.85rem;
   border: none !important;
-}
+} */
 
 /* Week & Day view */
-.rbc-time-view {
+/* .rbc-time-view {
   border: none !important;
-}
+} */
 
 .rbc-time-content .rbc-event {
   border-radius: 6px !important;
@@ -67,13 +72,93 @@
   font-size: 0.85rem;
 }
 
+.calendar-wrapper {
+  max-width: 900px;
+  margin: 0 auto; /* căn giữa */
+}
+
+/* .task-form {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+} */
+
+/* .task-form input,
+.task-form button {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+} */
+
+/* .task-form button {
+  background: #daa5d7;
+  color: rgb(132, 9, 9);
+  cursor: pointer;
+  transition: 0.3s;
+} */
+
+/* .task-form button:hover {
+  background: #37df80;
+} */
+
+/*Task calender*/
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6fa;
+  color: #dc1a6b;
+}
+
+/* form input,
+form select,
+form button {
+  padding: 600px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+form button {
+  background: #98ef1f;
+  color: rgb(217, 150, 57);
+  cursor: pointer;
+  border: none;
+}
+form button:hover {
+  background: #1565c0;
+}
 
 
-@keyframes App-logo-spin {
+ul li button:hover {
+  background: #d14444;
+}
+ */
+
+
+
+/* @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
   }
   to {
     transform: rotate(360deg);
   }
+} */
+
+.bg-widget {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 2000;
+}
+
+.bg-widget label {
+  cursor: pointer;
 }
