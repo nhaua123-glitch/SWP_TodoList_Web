@@ -1,22 +1,26 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from './login.module.css';
 
 export default function LoginPage() {
   const [error, setError] = useState("");
+  const router = useRouter();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const username = e.target.username.value;
-    const password = e.target.password.value;
+    const formData = new FormData(e.currentTarget);
+    const username = formData.get("username");
+    const password = formData.get("password");
 
     // Demo check giả lập
     if (username !== "admin" || password !== "123") {
       setError("Sai username hoặc mật khẩu!");
     } else {
       setError("");
-      alert("Đăng nhập thành công!");
+      //alert("Đăng nhập thành công!");
       // hoặc chuyển trang ...
+      router.push("/calendar");
     }
   };
 
