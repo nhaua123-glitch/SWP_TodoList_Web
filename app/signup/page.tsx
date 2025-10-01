@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type StoredUser = {
   username: string;
@@ -61,30 +62,86 @@ export default function SignupPage() {
   };
 
   return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-      <form onSubmit={handleSubmit} style={{ width: 360, display: "flex", flexDirection: "column", gap: 12 }}>
-        <h2>Sign up</h2>
-        <label htmlFor="username">Username</label>
-        <input id="username" name="username" type="text" />
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-pink-100 via-white to-pink-200">
+      <form
+        onSubmit={handleSubmit}
+        className="w-96 bg-white shadow-2xl rounded-2xl p-8 flex flex-col gap-4"
+      >
+        <h2 className="text-3xl font-bold text-center text-pink-600 mb-2">
+          Đăng ký tài khoản
+        </h2>
+        <p className="text-center text-gray-500 text-sm mb-4">
+          Tạo tài khoản mới để quản lý công việc dễ dàng hơn ✨
+        </p>
 
-        <label htmlFor="email">Email (tuỳ chọn)</label>
-        <input id="email" name="email" type="email" />
+        <div>
+          <label htmlFor="username" className="block text-sm font-medium mb-1">
+            Username
+          </label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-400"
+          />
+        </div>
 
-        <label htmlFor="password">Password</label>
-        <input id="password" name="password" type="password" />
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium mb-1">
+            Email 
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-400"
+          />
+        </div>
 
-        <label htmlFor="confirm">Confirm password</label>
-        <input id="confirm" name="confirm" type="password" />
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium mb-1">
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-400"
+          />
+        </div>
 
-        <button type="submit">Create account</button>
+        <div>
+          <label htmlFor="confirm" className="block text-sm font-medium mb-1">
+            Confirm password
+          </label>
+          <input
+            id="confirm"
+            name="confirm"
+            type="password"
+            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-400"
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 rounded-lg transition"
+        >
+          Create account
+        </button>
+
         {error ? (
-          <p style={{ color: "#d00", marginTop: 4 }}>{error}</p>
+          <p className="text-red-600 text-sm">{error}</p>
         ) : success ? (
-          <p style={{ color: "#0a0", marginTop: 4 }}>{success}</p>
+          <p className="text-green-600 text-sm">{success}</p>
         ) : null}
+
+        <p className="text-center text-sm mt-3">
+          Đã có tài khoản?{" "}
+          <Link href="/login" className="text-pink-500 hover:underline font-medium">
+            Đăng nhập
+          </Link>
+        </p>
       </form>
     </div>
   );
 }
-
-
