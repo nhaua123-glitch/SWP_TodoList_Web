@@ -1,37 +1,114 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";  // dùng router để chuyển trang
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./login.module.css";
 
 export default function LoginPage() {
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
+    setNeedsVerification(false);
+    
     const formData = new FormData(e.currentTarget);
-    const username = String(formData.get("username") || "").trim();
+    const email = String(formData.get("email") || "").trim();
     const password = String(formData.get("password") || "").trim();
 
-    // Lấy danh sách user từ localStorage
-    const raw =
-      typeof window !== "undefined" ? localStorage.getItem("users") : null;
-    const users: Array<{ username: string; password: string }> = raw
-      ? JSON.parse(raw)
-      : [];
+    if (!email || !password) {
+      setError("Vui lòng nhập đầy đủ email và mật khẩu!");
+      return;
+    }
 
-    // Kiểm tra login
-    const matched = users.find(
-      (u) => u.username === username && u.password === password
-    );
+    try {
+      setLoading(true);
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, password })
+      });
 
-    // Cho phép tài khoản demo admin/123
-    if (!matched && (username !== "admin" || password !== "123")) {
-      setError("Sai username hoặc mật khẩu!");
-    } else {
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.needsVerification) {
+          setNeedsVerification(true);
+          setVerificationEmail(email);
+        }
+        throw new Error(data.error || "Đăng nhập thất bại");
+      }
+
+      // Lưu session vào localStorage
+      if (data.user && data.session) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("session", JSON.stringify(data.session));
+        console.log("Login successful, user saved:", data.user);
+        console.log("Session saved:", data.session);
+      }
+
+      // Chuyển hướng đến trang chính
+      console.log("Redirecting to /calendar");
+      router.push("/calendar");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email: verificationEmail })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Gửi email thất bại");
+      }
+
       setError("");
-      router.push("/calendar"); // chuyển sang trang calendar
+      alert("Email xác thực đã được gửi lại! Vui lòng kiểm tra hộp thư.");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkEmailVerification = async (email: string) => {
+    try {
+      const response = await fetch("/api/auth/check-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.email_confirmed) {
+        setNeedsVerification(false);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Check verification error:", err);
+      return false;
     }
   };
 
@@ -42,13 +119,68 @@ export default function LoginPage() {
         <div className={styles.loginForm}>
           <form className={styles.formBox} onSubmit={handleSubmit}>
             <h2>Login</h2>
-            <label htmlFor="username">Username</label>
-            <input id="username" type="text" name="username" required />
+            <label htmlFor="email">Email</label>
+            <input 
+              id="email" 
+              type="email" 
+              name="email" 
+              required 
+              disabled={loading}
+            />
             <label htmlFor="password">Password</label>
-            <input id="password" type="password" name="password" required />
-            <button type="submit">Login</button>
+            <input 
+              id="password" 
+              type="password" 
+              name="password" 
+              required 
+              disabled={loading}
+            />
+            <button type="submit" disabled={loading}>
+              {loading ? "Đang đăng nhập..." : "Login"}
+            </button>
+            
+            {needsVerification && (
+              <div style={{ marginTop: 10, padding: 10, backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: 5 }}>
+                <p style={{ color: '#856404', margin: 0, marginBottom: 10 }}>
+                  Email chưa được xác thực. Vui lòng kiểm tra email và click vào link xác thực.
+                </p>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button 
+                    type="button" 
+                    onClick={handleResendVerification}
+                    disabled={loading}
+                    style={{ 
+                      backgroundColor: '#007bff', 
+                      color: 'white', 
+                      border: 'none', 
+                      padding: '5px 10px', 
+                      borderRadius: 3,
+                      cursor: loading ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Gửi lại email xác thực
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => checkEmailVerification(verificationEmail)}
+                    disabled={loading}
+                    style={{ 
+                      backgroundColor: '#28a745', 
+                      color: 'white', 
+                      border: 'none', 
+                      padding: '5px 10px', 
+                      borderRadius: 3,
+                      cursor: loading ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Kiểm tra lại
+                  </button>
+                </div>
+              </div>
+            )}
+            
             <p style={{ marginTop: 10 }}>
-              Chưa có tài khoản? <Link href="/signup">Đăng ký</Link>
+              Chưa có tài khoản? <Link href="/">Đăng ký</Link>
             </p>
             {error && <p className={styles.error}>{error}</p>}
           </form>
