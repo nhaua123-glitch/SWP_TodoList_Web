@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import LogoutButton from "@/components/LogoutButton";
 import styles from "./list.module.css";
 
 const supabase = createClient(
@@ -11,12 +13,42 @@ const supabase = createClient(
 );
 
 export default function ListPage() {
+  const router = useRouter();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Kiểm tra authentication
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    const checkAuth = () => {
+      const user = localStorage.getItem('user');
+      const session = localStorage.getItem('session');
+      
+      if (user && session) {
+        try {
+          const sessionData = JSON.parse(session);
+          const now = Date.now() / 1000;
+          
+          if (sessionData.expires_at && sessionData.expires_at > now) {
+            setIsAuthenticated(true);
+            fetchTasks();
+          } else {
+            localStorage.removeItem('user');
+            localStorage.removeItem('session');
+            router.push('/login');
+          }
+        } catch (error) {
+          localStorage.removeItem('user');
+          localStorage.removeItem('session');
+          router.push('/login');
+        }
+      } else {
+        router.push('/login');
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   const fetchTasks = async () => {
     const { data, error } = await supabase.from("tasks").select("*").order("start_time");
@@ -47,6 +79,20 @@ export default function ListPage() {
   }, {} as Record<string, any[]>);
 
   if (loading) return <p>Loading...</p>;
+  
+  if (!isAuthenticated) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px'
+      }}>
+        Chuyển hướng đến trang đăng nhập...
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -54,6 +100,18 @@ export default function ListPage() {
             <Link href="/calendar">
                 <button className={styles.switchBtn}>📅 Calendar</button>
             </Link>
+            <LogoutButton 
+              style={{ 
+                backgroundColor: '#dc3545', 
+                color: 'white', 
+                border: 'none', 
+                padding: '8px 16px', 
+                borderRadius: '4px',
+                marginLeft: '10px'
+              }}
+            >
+              🚪 Logout
+            </LogoutButton>
         </div>
 
       <h2 className={styles.title}>My Task List</h2>

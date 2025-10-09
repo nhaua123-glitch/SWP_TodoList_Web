@@ -7,6 +7,8 @@ import enUS from "date-fns/locale/en-US";
 import { createClient } from "@supabase/supabase-js";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import LogoutButton from "@/components/LogoutButton";
 import styles from "./calendar.module.css";
 
 // ========== SUPABASE ==========
@@ -20,11 +22,14 @@ const locales = { "en-US": enUS };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
 
 export default function Home() {
+  const router = useRouter();
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [points, setPoints] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
 
   // task mới (dùng chung cho form ngoài & modal add)
@@ -36,10 +41,51 @@ export default function Home() {
     type: "work",
   });
 
+  // Kiểm tra authentication
+  useEffect(() => {
+    const checkAuth = () => {
+      const user = localStorage.getItem('user');
+      const session = localStorage.getItem('session');
+      
+      console.log('Checking auth:', { user, session });
+      
+      if (user && session) {
+        try {
+          const sessionData = JSON.parse(session);
+          const now = Date.now() / 1000;
+          
+          if (sessionData.expires_at && sessionData.expires_at > now) {
+            console.log('User is authenticated');
+            setIsAuthenticated(true);
+            setLoading(false);
+            fetchTasks();
+          } else {
+            console.log('Session expired');
+            localStorage.removeItem('user');
+            localStorage.removeItem('session');
+            router.push('/login');
+          }
+        } catch (error) {
+          console.error('Invalid session:', error);
+          localStorage.removeItem('user');
+          localStorage.removeItem('session');
+          router.push('/login');
+        }
+      } else {
+        console.log('No user or session found');
+        router.push('/login');
+      }
+    };
+
+    checkAuth();
+  }, [router]);
+
   // lấy task từ supabase
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    if (isAuthenticated) {
+      fetchTasks();
+    }
+  }, [isAuthenticated]);
 
   const fetchTasks = async () => {
     const { data, error } = await supabase.from("tasks").select("*");
@@ -117,6 +163,36 @@ export default function Home() {
   };
 
 
+  // Hiển thị loading nếu đang kiểm tra auth
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px'
+      }}>
+        Đang kiểm tra đăng nhập...
+      </div>
+    );
+  }
+
+  // Hiển thị loading nếu chưa authenticated
+  if (!isAuthenticated) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px'
+      }}>
+        Chuyển hướng đến trang đăng nhập...
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
       <PointsBar points={points} />
@@ -124,6 +200,18 @@ export default function Home() {
         <Link href="/list">
           <button className={styles.switchBtn}>📋 List</button>
         </Link>
+        <LogoutButton 
+          style={{ 
+            backgroundColor: '#dc3545', 
+            color: 'white', 
+            border: 'none', 
+            padding: '8px 16px', 
+            borderRadius: '4px',
+            marginLeft: '10px'
+          }}
+        >
+          🚪 Logout
+        </LogoutButton>
       </div>
 
       <BackgroundCustomizer />
