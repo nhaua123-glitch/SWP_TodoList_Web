@@ -197,6 +197,9 @@ export default function Home() {
     <div className={styles.page}>
       <PointsBar points={points} />
       <div className={styles.navbar}>
+        <Link href="/dashboard">
+          <button className={styles.switchBtn}>🏠 Dashboard</button>
+        </Link>
         <Link href="/list">
           <button className={styles.switchBtn}>📋 List</button>
         </Link>
