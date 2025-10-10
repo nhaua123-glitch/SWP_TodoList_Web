@@ -79,7 +79,7 @@
   color: #7a8c99;
 }
 
-.formBox input[type="text"], .formBox input[type="password"] {
+.formBox input[type="email"], .formBox input[type="password"] {
   padding: 12px;
   margin-bottom: 20px;
   border: 2px solid #cbd5e1;
@@ -146,6 +146,55 @@
   text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
   margin-top: 10px;
 }
+
+.googleBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  color: #5c6b73;
+  padding: 12px 0;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 17px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 10px rgba(168, 237, 234, 0.08);
+}
+
+.googleBtn:hover {
+  background: #f1f5f9;
+  border-color: #a8edea;
+  transform: translateY(-2px) scale(1.01);
+}
+
+.googleBtn img {
+  width: 22px;
+  height: 22px;
+  margin-right: 6px;
+}
+
+.signupText {
+  text-align: center;
+  font-size: 16px;
+  margin-top: 12px;
+  color: #010101;
+}
+
+.signupLink {
+  color: #ef46c8;
+}
+
+.signupLink:hover {
+  text-decoration: underline;
+}
+
+
+
 
 @media screen and (max-width: 768px) {
   .container {

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -71,6 +72,19 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + "/login", // hoặc URL bạn muốn redirect về sau khi login
+      },
+    });
+    if (error) {
+      setError(error.message);
+    }
+  };
+
   return (
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-gradient-to-r from-pink-50 to-purple-100">
       {/* Form bên trái */}
@@ -125,22 +139,42 @@ export default function LoginPage() {
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300"
             />
 
+            <div className="flex items-center my-2">
+              <div className="flex-grow h-px bg-gray-300"></div>
+              <span className="mx-2 text-gray-400 text-sm">hoặc</span>
+              <div className="flex-grow h-px bg-gray-300"></div>
+            </div>
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 py-2 rounded-lg shadow hover:bg-gray-50 transition cursor-pointer"
+            >
+              <img
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                alt="Google"
+                className="w-5 h-5"
+              />
+              Đăng ký với Google
+            </button>
+
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-pink-400 text-white py-2 rounded-lg hover:bg-pink-500 transition disabled:bg-pink-300 disabled:cursor-not-allowed"
+              className="w-full bg-pink-400 text-white py-2 rounded-lg hover:bg-pink-500 transition disabled:bg-pink-300 cursor-pointer"
             >
               {loading ? "Đang xử lý..." : "Sign Up"}
             </button>
           </form>
 
           <p className="mt-4 text-center text-gray-600">
-            Already have an account?{" "}
+            Đã có tài khoản?{" "}
             <a href="/login" className="text-pink-500 hover:underline">
-              Sign In
+              Đăng nhập
             </a>
           </p>
         </div>
+
       </div>
 
       {/* Ảnh bên phải */}
