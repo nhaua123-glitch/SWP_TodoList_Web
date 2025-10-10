@@ -10,6 +10,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 import styles from "./calendar.module.css";
+import WidgetTimer from "../components/widgettimer";
+// 1. IMPORT THÊM withDragAndDrop
+import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
+import "react-big-calendar/lib/addons/dragAndDrop/styles.css"; // Import CSS cần thiết
 
 // ========== SUPABASE ==========
 const supabase = createClient(
@@ -21,6 +25,11 @@ const supabase = createClient(
 const locales = { "en-US": enUS };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
 
+// 2. TẠO DRAG AND DROP CALENDAR
+// Component này phải nằm ngoài hàm export default Home()
+const DragAndDropCalendar = withDragAndDrop(Calendar);
+
+
 export default function Home() {
   const router = useRouter();
   const [events, setEvents] = useState<any[]>([]);
@@ -28,13 +37,11 @@ export default function Home() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [points, setPoints] = useState(0);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-
+  
   // task mới (dùng chung cho form ngoài & modal add)
   const [newTask, setNewTask] = useState<any>({
     title: "",
+    description: "",
     start: "",
     end: "",
     color: "#3174ad",
@@ -106,6 +113,7 @@ export default function Home() {
 
     const task = {
       title: newTask.title,
+      description: newTask.description,
       start_time: newTask.start,
       end_time: newTask.end,
       color: newTask.color,
@@ -140,6 +148,27 @@ export default function Home() {
     setShowAddModal(true);
   };
 
+  // 3. HÀM XỬ LÝ KÉO VÀ THẢ (DRAG AND DROP)
+  const handleEventDrop = async ({ event, start, end, isAllDay }: any) => {
+    // 1. Cập nhật trạng thái cục bộ
+    const updatedEvents = events.map((existingEvent) =>
+      existingEvent.id === event.id ? { ...existingEvent, start, end, isAllDay } : existingEvent
+    );
+    setEvents(updatedEvents);
+
+    // 2. Cập nhật Supabase
+    // Cần format lại Date object thành chuỗi ISO string (để khớp với kiểu dữ liệu trong DB)
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+      })
+      .eq("id", event.id);
+
+    if (error) console.error("Error updating task date in Supabase:", error);
+  };
+  
   // style cho event trên calendar
   const eventStyleGetter = (event: any) => {
     const backgroundColor = event.completed ? "gray" : event.color || "#285882ff";
@@ -154,13 +183,19 @@ export default function Home() {
     other: "🔹",
   };
 
-  const EventComponent = ({ event }: { event: any }) => {
-    return (
-      <span>
-        {taskTypeIcons[event.type] || "🔹"} {event.title}
-      </span>
-    );
-  };
+const EventComponent = ({ event }: { event: any }) => {
+  const start = new Date(event.start).toLocaleString();
+  const end = new Date(event.end).toLocaleString();
+  return (
+    <span
+      title={`📌 ${event.title}\n🗓 ${start} - ${end}\n📝 ${event.description || "No description"}`}
+      style={{ cursor: "pointer" }}
+    >
+      {taskTypeIcons[event.type] || "🔹"} {event.title}
+    </span>
+  );
+};
+
 
 
   // Hiển thị loading nếu đang kiểm tra auth
@@ -226,6 +261,12 @@ export default function Home() {
           onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
         />
         <input
+          type="text"
+          placeholder="Description"
+          value={newTask.description}
+          onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+        />
+        <input
           type="datetime-local"
           value={newTask.start}
           onChange={(e) => setNewTask({ ...newTask, start: e.target.value })}
@@ -253,9 +294,9 @@ export default function Home() {
         <button onClick={handleAddTask}>Add Task</button>
       </div>
 
-      {/* CALENDAR */}
+      {/* CALENDAR SỬ DỤNG DRAG AND DROP */}
       <div className={styles.calendarContainer}>
-      <Calendar
+      <DragAndDropCalendar // Đã đổi tên thành DragAndDropCalendar
               localizer={localizer}
               events={events}
               startAccessor="start"
@@ -269,8 +310,11 @@ export default function Home() {
               selectable
               onSelectSlot={handleSelectSlot}
               components={{
-              event: EventComponent, // custom event hiển thị logo 
+                event: EventComponent,
               }}
+              // 4. THÊM PROPS CHO DRAG AND DROP
+              resizable={false} // Cho phép kéo dài/thu ngắn sự kiện (có thể bật nếu cần)
+              onEventDrop={handleEventDrop} // Xử lý khi kéo và thả
             />
       </div>
 
@@ -293,8 +337,14 @@ export default function Home() {
           setSelectedEvent={setSelectedEvent}
           setEvents={setEvents}
           setShowModal={setShowEditModal}
+          // Truyền setPoints xuống để cập nhật điểm khi hoàn thành task
+          setPoints={setPoints} 
         />
       )}
+
+      {/* WIDGET TIMER */}
+      {/* Truyền events và selectedEvent cho WidgetTimer */}
+      <WidgetTimer tasks={events} /> 
     </div>
     
   );
@@ -337,7 +387,7 @@ function BackgroundCustomizer() {
 }
 
 // ---------- AddModal ----------
-function AddModal({ newTask, setNewTask, handleAddTask, setShowAddModal }) {
+function AddModal({ newTask, setNewTask, handleAddTask, setShowAddModal }: any) {
   return (
     <div className={styles.modaladd}>
       <h3>Add Task</h3>
@@ -347,6 +397,14 @@ function AddModal({ newTask, setNewTask, handleAddTask, setShowAddModal }) {
           type="text"
           value={newTask.title}
           onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+        />
+      </label>
+      <label>
+        Description:
+        <input
+          type="text"
+          value={newTask.description}
+          onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
         />
       </label>
       <label>
@@ -414,33 +472,45 @@ function PointsBar({ points }: { points: number }) {
 }
 
 // ---------- EditModal ----------
-function EditModal({ selectedEvent, setSelectedEvent, setEvents, setShowModal }) {
+function EditModal({ selectedEvent, setSelectedEvent, setEvents, setShowModal, setPoints }: any) { // Thêm setPoints
   const handleDelete = async () => {
     await supabase.from("tasks").delete().eq("id", selectedEvent.id);
-    setEvents((prev) => prev.filter((ev) => ev.id !== selectedEvent.id));
+    setEvents((prev: any[]) => prev.filter((ev) => ev.id !== selectedEvent.id));
     setShowModal(false);
   };
 
   const handleSave = async () => {
+    // Lưu lại trạng thái completed cũ trước khi cập nhật
+    const oldCompleted = setEvents.find((ev: any) => ev.id === selectedEvent.id)?.completed || false;
+    
+    // Cập nhật lên Supabase
     await supabase
       .from("tasks")
       .update({
         title: selectedEvent.title,
-        start_time: selectedEvent.start,
-        end_time: selectedEvent.end,
+        description: selectedEvent.description,
+        // Chuyển Date object sang ISO string để Supabase nhận đúng
+        start_time: selectedEvent.start.toISOString(),
+        end_time: selectedEvent.end.toISOString(),
         color: selectedEvent.color,
         type: selectedEvent.type,
         completed: selectedEvent.completed,
       })
       .eq("id", selectedEvent.id);
 
-    setEvents((prev) => prev.map((ev) => (ev.id === selectedEvent.id ? selectedEvent : ev)));
+    // Cập nhật trạng thái cục bộ
+    setEvents((prev: any[]) => prev.map((ev) => (ev.id === selectedEvent.id ? selectedEvent : ev)));
 
-    // +10 điểm nếu hoàn thành đúng hạn
+    // LOGIC CỘNG ĐIỂM
     const now = new Date();
-    const isOnTime = selectedEvent.completed && selectedEvent.end >= selectedEvent.start && now >= selectedEvent.start;
-    if (isOnTime) {
-      setPoints((prev) => prev + 10);
+    // Điều kiện cộng điểm: vừa được đánh dấu là HOÀN THÀNH VÀ trước đó CHƯA HOÀN THÀNH
+    // Và task phải có thời gian hợp lệ (end >= start)
+    const isNowCompleted = selectedEvent.completed;
+    const wasCompleted = oldCompleted;
+    
+    // Kiểm tra đã hoàn thành, chưa hoàn thành trước đó, và task kết thúc đúng hoặc trước hiện tại (on time)
+    if (isNowCompleted && !wasCompleted && selectedEvent.end >= selectedEvent.start && selectedEvent.end <= now) {
+      setPoints((prev: number) => prev + 10);
     }
 
     setShowModal(false);
@@ -459,10 +529,19 @@ function EditModal({ selectedEvent, setSelectedEvent, setEvents, setShowModal })
         />
       </label>
       <label>
+        Description:
+        <input
+          type="text"
+          value={selectedEvent.description || ""}
+          onChange={(e) =>setSelectedEvent({ ...selectedEvent, description: e.target.value })}
+        />
+      </label>
+      <label>
         Start:
         <input
           type="datetime-local"
-          value={new Date(selectedEvent.start).toISOString().slice(0, 16)}
+          // Format Date object thành chuỗi datetime-local để hiển thị trong input
+          value={new Date(selectedEvent.start).toISOString().slice(0, 16)} 
           onChange={(e) => setSelectedEvent({ ...selectedEvent, start: new Date(e.target.value) })}
         />
       </label>
@@ -470,7 +549,8 @@ function EditModal({ selectedEvent, setSelectedEvent, setEvents, setShowModal })
         End:
         <input
           type="datetime-local"
-          value={new Date(selectedEvent.end).toISOString().slice(0, 16)}
+          // Format Date object thành chuỗi datetime-local để hiển thị trong input
+          value={new Date(selectedEvent.end).toISOString().slice(0, 16)} 
           onChange={(e) => setSelectedEvent({ ...selectedEvent, end: new Date(e.target.value) })}
         />
       </label>
@@ -511,6 +591,3 @@ function EditModal({ selectedEvent, setSelectedEvent, setEvents, setShowModal })
     </div>
   );
 }
-
-
-
