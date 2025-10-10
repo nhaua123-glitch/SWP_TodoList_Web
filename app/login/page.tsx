@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./login.module.css";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const [error, setError] = useState("");
@@ -15,7 +16,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setNeedsVerification(false);
-    
+
     const formData = new FormData(e.currentTarget);
     const email = String(formData.get("email") || "").trim();
     const password = String(formData.get("password") || "").trim();
@@ -112,6 +113,16 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/auth/callback", // chuyển về calendar sau khi login
+      },
+    });
+    if (error) setError(error.message);
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.container}>
@@ -120,55 +131,78 @@ export default function LoginPage() {
           <form className={styles.formBox} onSubmit={handleSubmit}>
             <h2>Login</h2>
             <label htmlFor="email">Email</label>
-            <input 
-              id="email" 
-              type="email" 
-              name="email" 
-              required 
+            <input
+              id="email"
+              type="email"
+              name="email"
+              required
               disabled={loading}
             />
             <label htmlFor="password">Password</label>
-            <input 
-              id="password" 
-              type="password" 
-              name="password" 
-              required 
+            <input
+              id="password"
+              type="password"
+              name="password"
+              required
               disabled={loading}
             />
             <button type="submit" disabled={loading}>
               {loading ? "Đang đăng nhập..." : "Login"}
             </button>
-            
+
+            {/* Đường kẻ và chữ "hoặc" */}
+            <div style={{ display: "flex", alignItems: "center", margin: "16px 0" }}>
+              <div style={{ flex: 1, height: 1, background: "#eee" }} />
+              <span style={{ margin: "0 12px", color: "#aaa", fontSize: 14 }}>hoặc</span>
+              <div style={{ flex: 1, height: 1, background: "#eee" }} />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className={styles.googleBtn}
+              disabled={loading}
+            >
+              <img
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                alt="Google"
+                style={{ width: 20, height: 20, marginRight: 8 }}
+              />
+              Đăng nhập với Google
+            </button>
+
+
+
             {needsVerification && (
               <div style={{ marginTop: 10, padding: 10, backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: 5 }}>
                 <p style={{ color: '#856404', margin: 0, marginBottom: 10 }}>
                   Email chưa được xác thực. Vui lòng kiểm tra email và click vào link xác thực.
                 </p>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={handleResendVerification}
                     disabled={loading}
-                    style={{ 
-                      backgroundColor: '#007bff', 
-                      color: 'white', 
-                      border: 'none', 
-                      padding: '5px 10px', 
+                    style={{
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      padding: '5px 10px',
                       borderRadius: 3,
                       cursor: loading ? 'not-allowed' : 'pointer'
                     }}
                   >
                     Gửi lại email xác thực
                   </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => checkEmailVerification(verificationEmail)}
                     disabled={loading}
-                    style={{ 
-                      backgroundColor: '#28a745', 
-                      color: 'white', 
-                      border: 'none', 
-                      padding: '5px 10px', 
+                    style={{
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      padding: '5px 10px',
                       borderRadius: 3,
                       cursor: loading ? 'not-allowed' : 'pointer'
                     }}
@@ -178,9 +212,12 @@ export default function LoginPage() {
                 </div>
               </div>
             )}
-            
-            <p style={{ marginTop: 10 }}>
-              Chưa có tài khoản? <Link href="/">Đăng ký</Link>
+
+            <p className={styles.signupText} style={{ marginTop: 10 }}>
+              Chưa có tài khoản?{" "}
+              <Link href="/" className={styles.signupLink}>
+                Đăng ký
+              </Link>
             </p>
             {error && <p className={styles.error}>{error}</p>}
           </form>
