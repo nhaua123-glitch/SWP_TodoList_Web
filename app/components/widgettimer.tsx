@@ -257,8 +257,7 @@ export default function TimerWidget({ tasks = [] }) {
 
   // FIX: Đảm bảo updateTimerState chạy trước khi bật isRunning
   const handleStart = () => {
-    // Luôn tính toán lại giá trị ban đầu khi bấm start
-    updateTimerState(); 
+    setIsRunning(true);
     // Dùng setTimeout nhỏ để đảm bảo React hoàn thành việc cập nhật trạng thái trước khi bật timer
     // Đây là một "hack" phổ biến để xử lý vấn đề setState đồng bộ/bất đồng bộ khi cần
     setTimeout(() => {
