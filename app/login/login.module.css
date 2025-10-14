@@ -1,150 +1,95 @@
-@keyframes pastelBackgroundShift {
-  0% {background-position: 0% 50%;}
-  50% {background-position: 100% 50%;}
-  100% {background-position: 0% 50%;}
-}
-
-/* body chính */
 .page {
-  margin: 0;
-  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(-45deg, #a8edea, #fed6e3, #fef9d7, #c1e1c1);
-  background-size: 400% 400%;
-  animation: pastelBackgroundShift 20s ease infinite;
-  font-family: 'Quicksand', sans-serif;
+  height: 100vh;
+  background-color: #faf8f7;
+  font-family: "Poppins", sans-serif;
 }
 
 .container {
   display: flex;
-  width: 90%;
-  max-width: 1200px;
-  min-height: 90%;
-  box-shadow: 0 0 25px rgba(0,0,0,0.1);
+  width: 900px;
+  background: white;
   border-radius: 20px;
   overflow: hidden;
-  background-color: rgba(255,255,255,0.4);
-  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
 }
 
-/* login-form bên trái */
 .loginForm {
-  flex: 0 0 45%;
+  flex: 1;
+  padding: 40px;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background: rgba(255, 255, 255, 0.35);
-  animation: glowForm 6s ease-in-out infinite alternate;
-}
-
-@keyframes glowForm {
-  0% {
-    box-shadow: 0 0 12px rgba(255, 190, 220, 0.25);
-  }
-  100% {
-    box-shadow: 0 0 25px rgba(255, 170, 210, 0.4);
-  }
+  justify-content: center;
 }
 
 .formBox {
-  background: #fff;
-  padding: 40px 50px;
-  border-radius: 20px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.1);
   width: 100%;
-  max-width: 370px;
-  transition: transform 0.3s ease;
+  max-width: 300px;
   display: flex;
   flex-direction: column;
 }
 
-.formBox:hover {
-  transform: scale(1.01);
-}
-
 .formBox h2 {
-  margin-bottom: 25px;
-  font-weight: 700;
-  font-size: 28px;
   text-align: center;
-  color: #7a8c99;
+  margin-bottom: 20px;
 }
 
 .formBox label {
-  margin-bottom: 8px;
-  font-weight: 600;
-  font-size: 15px;
-  color: #7a8c99;
+  margin-bottom: 6px;
+  font-weight: 500;
 }
 
-.formBox input[type="email"], .formBox input[type="password"] {
+.formBox input[type="email"],
+.formBox input[type="password"] {
   padding: 12px;
   margin-bottom: 20px;
   border: 2px solid #cbd5e1;
   border-radius: 12px;
   font-size: 16px;
+  transition: border-color 0.3s;
 }
 
 .formBox input:focus {
-  border-color: #a8edea;
   outline: none;
-  box-shadow: 0 0 6px #a8edea;
+  border-color: #caa2c2;
 }
 
 .formBox button {
-  padding: 14px;
+  background: #caa2c2;
+  color: white;
   border: none;
-  border-radius: 12px;
-  background-color: #fed6e3;
-  color: #7a8c99;
-  font-weight: 700;
-  font-size: 18px;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 16px;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.15s ease;
-  box-shadow: 0 4px 15px rgba(254, 214, 227, 0.5);
+  transition: background 0.3s, transform 0.2s;
 }
 
 .formBox button:hover {
-  background-color: #fbb1c1;
+  background: #b37fa5;
   transform: translateY(-2px);
 }
 
 .error {
-  margin-top: 15px;
-  color: #e53935;
-  font-weight: bold;
+  color: #d9534f;
   text-align: center;
-}
-
-/* right panel */
-.rightPanel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 50px 40px;
-  color: #5c6b73;
-  text-align: center;
-}
-
-.rightPanel img {
-  max-width: 90%;
-  height: auto;
-  border-radius: 15px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-}
-
-.rightPanel p {
-  font-family: 'Great Vibes', cursive;
-  font-size: 35px;
-  line-height: 1.6;
-  max-width: 550px;
-  color: #b085b7;
-  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
   margin-top: 10px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  color: #aaa;
+  font-size: 14px;
+}
+
+.line {
+  flex: 1;
+  height: 1px;
+  background: #eee;
 }
 
 .googleBtn {
@@ -187,14 +132,28 @@
 
 .signupLink {
   color: #ef46c8;
+  font-weight: 600;
 }
 
 .signupLink:hover {
   text-decoration: underline;
 }
 
+.rightPanel {
+  flex: 1;
+  background: #f7f3f5;
+  padding: 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 
-
+.rightPanel img {
+  max-width: 80%;
+  border-radius: 10px;
+  margin: 0 auto;
+}
 
 @media screen and (max-width: 768px) {
   .container {
@@ -202,7 +161,8 @@
     height: auto;
   }
 
-  .loginForm, .rightPanel {
+  .loginForm,
+  .rightPanel {
     flex: unset;
     width: 100%;
     padding: 30px;
@@ -212,6 +172,3 @@
     font-size: 24px;
   }
 }
-
-
-
