@@ -97,6 +97,9 @@ export default function ListPage() {
   return (
     <div className={styles.page}>
         <div className={styles.navbar}>
+            <Link href="/dashboard">
+                <button className={styles.switchBtn}>🏠 Dashboard</button>
+            </Link>
             <Link href="/calendar">
                 <button className={styles.switchBtn}>📅 Calendar</button>
             </Link>
