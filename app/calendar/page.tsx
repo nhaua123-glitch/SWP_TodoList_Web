@@ -10,16 +10,27 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 import styles from "./calendar.module.css";
+import WidgetTimer from "../components/widgettimer";
+import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
+import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
+import { isAuthenticated as checkAuthStatus } from "@/lib/auth"; 
 
-// ========== SUPABASE ==========
-const supabase = createClient(
-  "https://lmgbtjieffptlrvjkimp.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtZ2J0amllZmZwdGxydmpraW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4ODEyNzEsImV4cCI6MjA3NDQ1NzI3MX0.-9fEQrwQvzHZfcWIOiukGKmcVyECoMUf8fRffWSPlEs"
-);
 
-// Localizer cho Calendar
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. Please check your .env.local file or Hosting configuration.');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+// ===================================
+
 const locales = { "en-US": enUS };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
+
+const DragAndDropCalendar = withDragAndDrop(Calendar);
+
 
 export default function Home() {
   const router = useRouter();
@@ -28,13 +39,18 @@ export default function Home() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [points, setPoints] = useState(0);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-
-
-  // task mới (dùng chung cho form ngoài & modal add)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // 💡 1. THÊM STATE ĐỂ QUẢN LÝ NGÀY THÁNG HIỆN TẠI (CHO NÚT BACK/NEXT)
+  const [date, setDate] = useState(new Date()); 
+  
+  // 💡 2. THÊM STATE QUẢN LÝ CHẾ ĐỘ XEM (CHO NÚT MONTH/WEEK/DAY)
+  const [view, setView] = useState("month");
+  
   const [newTask, setNewTask] = useState<any>({
     title: "",
+    description: "",
     start: "",
     end: "",
     color: "#3174ad",
@@ -58,7 +74,7 @@ export default function Home() {
             console.log('User is authenticated');
             setIsAuthenticated(true);
             setLoading(false);
-            fetchTasks();
+            fetchTasks(); 
           } else {
             console.log('Session expired');
             localStorage.removeItem('user');
@@ -80,14 +96,8 @@ export default function Home() {
     checkAuth();
   }, [router]);
 
-  // lấy task từ supabase
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchTasks();
-    }
-  }, [isAuthenticated]);
-
   const fetchTasks = async () => {
+    setLoading(true);
     const { data, error } = await supabase.from("tasks").select("*");
     if (error) console.error(error);
     else {
@@ -98,14 +108,15 @@ export default function Home() {
       }));
       setEvents(formatted);
     }
+    setLoading(false);
   };
 
-  // thêm task
   const handleAddTask = async () => {
     if (!newTask.title || !newTask.start || !newTask.end) return;
 
     const task = {
       title: newTask.title,
+      description: newTask.description,
       start_time: newTask.start,
       end_time: newTask.end,
       color: newTask.color,
@@ -123,15 +134,14 @@ export default function Home() {
       };
       setEvents([...events, added]);
       setShowAddModal(false);
-      // reset form ngoài
-      setNewTask({ title: "", start: "", end: "", color: "#3174ad", type: "work" });
+      setNewTask({ title: "", start: "", end: "", color: "#3174ad", type: "work", description: "" });
     }
   };
 
-  // click vào ô trống trong calendar
   const handleSelectSlot = (slotInfo: any) => {
     setNewTask({
       title: "",
+      description: "", 
       start: slotInfo.start.toISOString().slice(0, 16),
       end: slotInfo.end.toISOString().slice(0, 16),
       color: "#6a879fff",
@@ -139,10 +149,26 @@ export default function Home() {
     });
     setShowAddModal(true);
   };
+  
+  const handleEventDrop = async ({ event, start, end, isAllDay }: any) => {
+    const updatedEvents = events.map((existingEvent) =>
+      existingEvent.id === event.id ? { ...existingEvent, start, end, isAllDay } : existingEvent
+    );
+    setEvents(updatedEvents);
 
-  // style cho event trên calendar
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+      })
+      .eq("id", event.id);
+
+    if (error) console.error("Error updating task date in Supabase:", error);
+  };
+  
   const eventStyleGetter = (event: any) => {
-    const backgroundColor = event.completed ? "gray" : event.color || "#285882ff";
+    const backgroundColor = event.completed ? "#acfab8ff" : event.color || "#285882ff";
     return { style: { backgroundColor } };
   };
 
@@ -155,15 +181,18 @@ export default function Home() {
   };
 
   const EventComponent = ({ event }: { event: any }) => {
+    const start = new Date(event.start).toLocaleString();
+    const end = new Date(event.end).toLocaleString();
     return (
-      <span>
+      <span
+        title={`📌 ${event.title}\n🗓 ${start} - ${end}\n📝 ${event.description || "No description"}`}
+        style={{ cursor: "pointer" }}
+      >
         {taskTypeIcons[event.type] || "🔹"} {event.title}
       </span>
     );
   };
 
-
-  // Hiển thị loading nếu đang kiểm tra auth
   if (loading) {
     return (
       <div style={{ 
@@ -173,12 +202,11 @@ export default function Home() {
         height: '100vh',
         fontSize: '18px'
       }}>
-        Đang kiểm tra đăng nhập...
+        Đang tải...
       </div>
     );
   }
 
-  // Hiển thị loading nếu chưa authenticated
   if (!isAuthenticated) {
     return (
       <div style={{ 
@@ -192,6 +220,7 @@ export default function Home() {
       </div>
     );
   }
+
 
   return (
     <div className={styles.page}>
@@ -224,9 +253,15 @@ export default function Home() {
       <div className={styles.taskForm}>
         <input
           type="text"
-          placeholder="Add New Task"
+          placeholder="Add New Task Title"
           value={newTask.title}
           onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+        />
+        <input
+          type="text"
+          placeholder="Description"
+          value={newTask.description}
+          onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
         />
         <input
           type="datetime-local"
@@ -256,28 +291,36 @@ export default function Home() {
         <button onClick={handleAddTask}>Add Task</button>
       </div>
 
-      {/* CALENDAR */}
+      {/* CALENDAR SỬ DỤNG DRAG AND DROP */}
       <div className={styles.calendarContainer}>
-      <Calendar
-              localizer={localizer}
-              events={events}
-              startAccessor="start"
-              endAccessor="end"
-              style={{ height: 600 }}
-              eventPropGetter={eventStyleGetter}
-              onSelectEvent={(event) => {
-                setSelectedEvent(event);
-                setShowEditModal(true);
-              }}
-              selectable
-              onSelectSlot={handleSelectSlot}
-              components={{
-              event: EventComponent, // custom event hiển thị logo 
-              }}
-            />
+        <DragAndDropCalendar
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ height: 600 }}
+          eventPropGetter={eventStyleGetter}
+          onSelectEvent={(event) => {
+            setSelectedEvent(event);
+            setShowEditModal(true);
+          }}
+          selectable
+          onSelectSlot={handleSelectSlot}
+          components={{
+            event: EventComponent,
+          }}
+          resizable={false}
+          onEventDrop={handleEventDrop}
+          
+          // 💡 QUẢN LÝ CHẾ ĐỘ XEM (MONTH/WEEK/DAY)
+          view={view} 
+          onView={setView} 
+          
+          // 💡 QUẢN LÝ ĐIỀU HƯỚNG (BACK/NEXT)
+          date={date}
+          onNavigate={setDate} 
+        />
       </div>
-
-
 
       {/* MODAL ADD */}
       {showAddModal && (
@@ -295,15 +338,22 @@ export default function Home() {
           selectedEvent={selectedEvent}
           setSelectedEvent={setSelectedEvent}
           setEvents={setEvents}
+          events={events}
           setShowModal={setShowEditModal}
+          setPoints={setPoints} 
         />
       )}
+
+      {/* WIDGET TIMER */}
+      <WidgetTimer tasks={events} /> 
     </div>
-    
   );
 }
 
-// ---------- BackgroundCustomizer ----------
+// -----------------------------------------------------------------------------
+// CÁC COMPONENT PHỤ
+// -----------------------------------------------------------------------------
+
 function BackgroundCustomizer() {
   const [bgColor, setBgColor] = useState("#ffffff");
 
@@ -339,8 +389,7 @@ function BackgroundCustomizer() {
   );
 }
 
-// ---------- AddModal ----------
-function AddModal({ newTask, setNewTask, handleAddTask, setShowAddModal }) {
+function AddModal({ newTask, setNewTask, handleAddTask, setShowAddModal }: any) {
   return (
     <div className={styles.modaladd}>
       <h3>Add Task</h3>
@@ -350,6 +399,14 @@ function AddModal({ newTask, setNewTask, handleAddTask, setShowAddModal }) {
           type="text"
           value={newTask.title}
           onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+        />
+      </label>
+      <label>
+        Description:
+        <input
+          type="text"
+          value={newTask.description}
+          onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
         />
       </label>
       <label>
@@ -397,7 +454,6 @@ function AddModal({ newTask, setNewTask, handleAddTask, setShowAddModal }) {
   );
 }
 
-/* Hiển thị điểm số */
 function PointsBar({ points }: { points: number }) {
   return (
     <div style={{ margin: "20px auto", maxWidth: "400px", textAlign: "center" }}>
@@ -405,7 +461,7 @@ function PointsBar({ points }: { points: number }) {
       <div style={{ background: "#ecdfdfff", borderRadius: "6px", height: "20px", overflow: "hidden" }}>
         <div
           style={{
-            width: `${Math.min(points, 100)}%`, // nếu muốn max 100 điểm
+            width: `${Math.min(points, 100)}%`,
             background: "#8adb8d",
             height: "100%",
             transition: "width 0.3s",
@@ -416,39 +472,101 @@ function PointsBar({ points }: { points: number }) {
   );
 }
 
-// ---------- EditModal ----------
-function EditModal({ selectedEvent, setSelectedEvent, setEvents, setShowModal }) {
+function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events }) {
+  // ✅ STATE: Dùng state cục bộ này để lưu lại các thay đổi khi bạn chỉnh sửa.
+  const [editingEvent, setEditingEvent] = useState(selectedEvent);
+
+  // useEffect này đảm bảo rằng nếu một sự kiện mới được chọn,
+  // form chỉnh sửa sẽ được reset lại với dữ liệu của sự kiện mới đó.
+  useEffect(() => {
+    setEditingEvent(selectedEvent);
+  }, [selectedEvent]);
+
+  // ✅ HANDLER: Một hàm xử lý duy nhất cho tất cả các input trong form.
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    // Nếu là checkbox thì lấy giá trị 'checked', ngược lại lấy 'value'.
+    const finalValue = type === 'checkbox' ? checked : value;
+
+    setEditingEvent(prev => ({
+      ...prev,
+      [name]: finalValue,
+    }));
+  };
+
   const handleDelete = async () => {
-    await supabase.from("tasks").delete().eq("id", selectedEvent.id);
-    setEvents((prev) => prev.filter((ev) => ev.id !== selectedEvent.id));
-    setShowModal(false);
+    // Nên có một bước xác nhận trước khi xóa.
+    if (window.confirm(`Bạn có chắc muốn xóa công việc "${selectedEvent.title}" không?`)) {
+      const { error } = await supabase.from("tasks").delete().eq("id", selectedEvent.id);
+      if (error) {
+        console.error("Lỗi khi xóa công việc:", error);
+        alert("Xóa thất bại!");
+      } else {
+        setEvents((prev) => prev.filter((ev) => ev.id !== selectedEvent.id));
+        setShowModal(false);
+      }
+    }
   };
 
   const handleSave = async () => {
-    await supabase
+    // Chuyển đổi giá trị chuỗi (string) từ input thành đối tượng Date để lưu trữ
+    const finalEventToSave = {
+        ...editingEvent,
+        start: new Date(editingEvent.start),
+        end: new Date(editingEvent.end),
+    };
+
+    // Tìm sự kiện gốc để so sánh trạng thái 'completed' cho logic cộng điểm
+    const originalEvent = events.find((ev) => ev.id === finalEventToSave.id);
+    const wasCompleted = originalEvent ? originalEvent.completed : false;
+
+    // Cập nhật dữ liệu lên Supabase
+    const { error } = await supabase
       .from("tasks")
       .update({
-        title: selectedEvent.title,
-        start_time: selectedEvent.start,
-        end_time: selectedEvent.end,
-        color: selectedEvent.color,
-        type: selectedEvent.type,
-        completed: selectedEvent.completed,
+        title: finalEventToSave.title,
+        description: finalEventToSave.description,
+        start_time: finalEventToSave.start.toISOString(),
+        end_time: finalEventToSave.end.toISOString(),
+        color: finalEventToSave.color,
+        type: finalEventToSave.type,
+        completed: finalEventToSave.completed,
       })
-      .eq("id", selectedEvent.id);
+      .eq("id", finalEventToSave.id);
 
-    setEvents((prev) => prev.map((ev) => (ev.id === selectedEvent.id ? selectedEvent : ev)));
+    if (error) {
+      console.error("Lỗi khi cập nhật công việc:", error);
+      alert("Lưu thay đổi thất bại. Vui lòng kiểm tra console.");
+      return;
+    }
 
-    // +10 điểm nếu hoàn thành đúng hạn
+    // Cập nhật lại danh sách sự kiện ở component cha
+    setEvents((prev) =>
+      prev.map((ev) => (ev.id === finalEventToSave.id ? finalEventToSave : ev))
+    );
+
+    // Logic cộng điểm
     const now = new Date();
-    const isOnTime = selectedEvent.completed && selectedEvent.end >= selectedEvent.start && now >= selectedEvent.start;
-    if (isOnTime) {
+    const isNowCompleted = finalEventToSave.completed;
+    // Chỉ cộng điểm khi: công việc vừa được chuyển sang 'hoàn thành' VÀ hoàn thành đúng giờ.
+    if (isNowCompleted && !wasCompleted && finalEventToSave.end <= now) {
       setPoints((prev) => prev + 10);
     }
 
     setShowModal(false);
   };
 
+  // Tránh lỗi nếu editingEvent là null
+  if (!editingEvent) return null;
+
+  // Hàm hỗ trợ định dạng ngày giờ cho input type="datetime-local"
+  const formatDateTimeLocal = (date: string | Date | undefined) => {
+    if (!date) return "";
+    const d = new Date(date);
+    // Điều chỉnh múi giờ trước khi cắt chuỗi để hiển thị đúng trên input
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  };
 
   return (
     <div className={styles.modal}>
@@ -457,39 +575,53 @@ function EditModal({ selectedEvent, setSelectedEvent, setEvents, setShowModal })
         Title:
         <input
           type="text"
-          value={selectedEvent.title}
-          onChange={(e) => setSelectedEvent({ ...selectedEvent, title: e.target.value })}
+          name="title" // Thêm thuộc tính 'name'
+          value={editingEvent.title} // Lấy giá trị từ 'editingEvent'
+          onChange={handleChange} // Dùng hàm xử lý chung
+        />
+      </label>
+      <label>
+        Description:
+        <input
+          type="text"
+          name="description" // Thêm thuộc tính 'name'
+          value={editingEvent.description || ""} // Lấy giá trị từ 'editingEvent'
+          onChange={handleChange}
         />
       </label>
       <label>
         Start:
         <input
           type="datetime-local"
-          value={new Date(selectedEvent.start).toISOString().slice(0, 16)}
-          onChange={(e) => setSelectedEvent({ ...selectedEvent, start: new Date(e.target.value) })}
+          name="start" // Thêm thuộc tính 'name'
+          value={formatDateTimeLocal(editingEvent.start)} // Dùng hàm định dạng ngày giờ
+          onChange={handleChange}
         />
       </label>
       <label>
         End:
         <input
           type="datetime-local"
-          value={new Date(selectedEvent.end).toISOString().slice(0, 16)}
-          onChange={(e) => setSelectedEvent({ ...selectedEvent, end: new Date(e.target.value) })}
+          name="end" // Thêm thuộc tính 'name'
+          value={formatDateTimeLocal(editingEvent.end)} // Dùng hàm định dạng ngày giờ
+          onChange={handleChange}
         />
       </label>
       <label>
         Color:
         <input
           type="color"
-          value={selectedEvent.color}
-          onChange={(e) => setSelectedEvent({ ...selectedEvent, color: e.target.value })}
+          name="color" // Thêm thuộc tính 'name'
+          value={editingEvent.color}
+          onChange={handleChange}
         />
       </label>
       <label>
         Type:
         <select
-          value={selectedEvent.type}
-          onChange={(e) => setSelectedEvent({ ...selectedEvent, type: e.target.value })}
+          name="type" // Thêm thuộc tính 'name'
+          value={editingEvent.type}
+          onChange={handleChange}
         >
           <option value="work">Công việc</option>
           <option value="study">Học tập</option>
@@ -502,9 +634,10 @@ function EditModal({ selectedEvent, setSelectedEvent, setEvents, setShowModal })
         Completed:
         <input
           type="checkbox"
-          checked={selectedEvent.completed}
-          onChange={(e) => setSelectedEvent({ ...selectedEvent, completed: e.target.checked })}
-        /> 
+          name="completed" // Thêm thuộc tính 'name'
+          checked={!!editingEvent.completed} // Dùng 'checked' và đảm bảo là boolean
+          onChange={handleChange}
+        />
       </label>
       <div className={styles.buttonGroup}>
         <button className={styles.saveBtn} onClick={handleSave}>Save</button>
@@ -514,6 +647,3 @@ function EditModal({ selectedEvent, setSelectedEvent, setEvents, setShowModal })
     </div>
   );
 }
-
-
-

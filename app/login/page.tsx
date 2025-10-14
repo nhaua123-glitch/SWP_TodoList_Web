@@ -97,7 +97,7 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ email })
+body: JSON.stringify({ email })
       });
 
       const data = await response.json();
@@ -184,7 +184,7 @@ export default function LoginPage() {
                     onClick={handleResendVerification}
                     disabled={loading}
                     style={{
-                      backgroundColor: '#007bff',
+backgroundColor: '#007bff',
                       color: 'white',
                       border: 'none',
                       padding: '5px 10px',
