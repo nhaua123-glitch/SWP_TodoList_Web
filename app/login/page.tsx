@@ -48,7 +48,7 @@ export default function LoginPage() {
             <input id="password" type="password" name="password" required />
             <button type="submit">Login</button>
             <p style={{ marginTop: 10 }}>
-              Chưa có tài khoản? <Link href="/signup">Đăng ký</Link>
+              Chưa có tài khoản? <Link href="/signup">Đăng kí</Link>
             </p>
             {error && <p className={styles.error}>{error}</p>}
           </form>
