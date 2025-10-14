@@ -13,6 +13,7 @@
   color: #fab8df;
 }
 
+
 /* Calendar */
 .calendarContainer {
   background: #ffffff;
@@ -70,9 +71,15 @@
   color: #f67d7d !important;
 }
 
+.calendarContainer :global(.rbc-event:hover) {
+  background: #ffb2b2 !important;
+  color: white !important;
+}
+
 .calendarContainer :global(.rbc-today) {
   background: #f5d4e6 !important;
 }
+
 
 /* Form thêm task */
 .taskForm {
@@ -103,6 +110,7 @@
   background: #90acc3;
 }
 
+
 /* Nút chọn màu nền / ảnh nền */
 .bgWidget {
   position: fixed;
@@ -113,6 +121,7 @@
   font-size: 20px;
   cursor: pointer;
 }
+
 
 /* Modal add task trong calendar */
 .modaladd {
