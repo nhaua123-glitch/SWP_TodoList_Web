@@ -150,11 +150,10 @@ export default function LoginPage() {
               {loading ? "Đang đăng nhập..." : "Login"}
             </button>
 
-            {/* Đường kẻ và chữ "hoặc" */}
-            <div style={{ display: "flex", alignItems: "center", margin: "16px 0" }}>
-              <div style={{ flex: 1, height: 1, background: "#eee" }} />
-              <span style={{ margin: "0 12px", color: "#aaa", fontSize: 14 }}>hoặc</span>
-              <div style={{ flex: 1, height: 1, background: "#eee" }} />
+            <div className={styles.divider}>
+              <div className={styles.line}></div>
+              <span>or</span>
+              <div className={styles.line}></div>
             </div>
 
             <button
@@ -168,55 +167,17 @@ export default function LoginPage() {
                 alt="Google"
                 style={{ width: 20, height: 20, marginRight: 8 }}
               />
-              Đăng nhập với Google
+              Login with Google
             </button>
 
+{error && <p className={styles.error}>{error}</p>}
+<p className={styles.signupText}>
+  Don’t have an account?{" "}
+  <Link href="/signup" className={styles.signupLink}>
+    Signup
+  </Link>
+</p>
 
-
-            {needsVerification && (
-              <div style={{ marginTop: 10, padding: 10, backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: 5 }}>
-                <p style={{ color: '#856404', margin: 0, marginBottom: 10 }}>
-                  Email chưa được xác thực. Vui lòng kiểm tra email và click vào link xác thực.
-                </p>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={handleResendVerification}
-                    disabled={loading}
-                    style={{
-                      backgroundColor: '#007bff',
-                      color: 'white',
-                      border: 'none',
-                      padding: '5px 10px',
-                      borderRadius: 3,
-                      cursor: loading ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    Gửi lại email xác thực
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => checkEmailVerification(verificationEmail)}
-                    disabled={loading}
-                    style={{
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      border: 'none',
-                      padding: '5px 10px',
-                      borderRadius: 3,
-                      cursor: loading ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    Kiểm tra lại
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <p className={styles.signupText} style={{ marginTop: 10 }}>
-              Chưa có tài khoản?{" "}
-              <Link href="/" className={styles.signupLink}>
-                Đăng ký
               </Link>
             </p>
             {error && <p className={styles.error}>{error}</p>}
@@ -231,8 +192,7 @@ export default function LoginPage() {
             style={{ maxWidth: "220px", marginBottom: "20px" }}
           />
           <p>
-            Spend a sweet summer with LaceMade and more exciting things are
-            waiting for you to discover.
+            A gentle way to manage your day.
           </p>
           <img
             src="https://lacemade.com/cdn/shop/files/2_e003ffac-8ca6-454a-9f48-e5435c086ad6_1800x.jpg?v=1747726087"
