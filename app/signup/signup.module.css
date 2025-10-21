@@ -1,0 +1,207 @@
+@keyframes pastelBackgroundShift {
+  0% {background-position: 0% 50%;}
+  50% {background-position: 100% 50%;}
+  100% {background-position: 0% 50%;}
+}
+
+.page {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(-45deg, #a8edea, #fed6e3, #fef9d7, #c1e1c1);
+  background-size: 400% 400%;
+  animation: pastelBackgroundShift 20s ease infinite;
+  font-family: 'Quicksand', sans-serif;
+}
+
+.container {
+  display: flex;
+  width: 90%;
+  max-width: 1200px;
+  min-height: 90%;
+  box-shadow: 0 0 25px rgba(0,0,0,0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  background-color: rgba(255,255,255,0.4);
+  backdrop-filter: blur(12px);
+}
+
+
+/* Form bên trái */
+.loginForm {
+  flex: 0 0 45%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.35);
+  animation: glowForm 6s ease-in-out infinite alternate;
+}
+
+@keyframes glowForm {
+  0% { box-shadow: 0 0 12px rgba(255, 190, 220, 0.25); }
+  100% { box-shadow: 0 0 25px rgba(255, 170, 210, 0.4); }
+}
+
+/* Form Box */
+.formBox {
+  background: #fff;
+  padding: 40px 50px;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 370px;
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.formBox:hover {
+  transform: scale(1.01);
+}
+
+.formBox h2 {
+  margin-bottom: 25px;
+  font-weight: 700;
+  font-size: 28px;
+  text-align: center;
+  color: #7a8c99;
+}
+
+.formBox input[type="text"],
+.formBox input[type="email"],
+.formBox input[type="password"] {
+  padding: 12px;
+  margin-bottom: 20px;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+.formBox input:focus {
+  border-color: #a8edea;
+  outline: none;
+  box-shadow: 0 0 6px #a8edea;
+}
+
+.formBox button {
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background-color: #fed6e3;
+  color: #7a8c99;
+  font-weight: 700;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.15s ease;
+  box-shadow: 0 4px 15px rgba(254, 214, 227, 0.5);
+  margin-top: 8px;
+}
+
+.formBox button:hover {
+  background-color: #fbb1c1;
+  transform: translateY(-2px);
+}
+
+.error {
+  margin-top: 15px;
+  color: #e53935;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Google button */
+.googleBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  color: #5c6b73;
+  padding: 12px 0;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 17px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 10px rgba(168, 237, 234, 0.08);
+}
+
+.googleBtn:hover {
+  background: #f1f5f9;
+  border-color: #a8edea;
+  transform: translateY(-2px) scale(1.01);
+}
+
+.googleBtn img {
+  width: 22px;
+  height: 22px;
+  margin-right: 6px;
+}
+
+/* Panel bên phải */
+.rightPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 50px 40px;
+  color: #5c6b73;
+  text-align: center;
+}
+
+.rightPanel img {
+  max-width: 90%;
+  height: auto;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.rightPanel p {
+  font-family: 'Great Vibes', cursive;
+  font-size: 35px;
+  line-height: 1.6;
+  max-width: 550px;
+  color: #b085b7;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+  margin-top: 10px;
+}
+
+/* Text dưới form */
+.signupText {
+  text-align: center;
+  font-size: 16px;
+  margin-top: 12px;
+  color: #010101;
+}
+
+.signupLink {
+  color: #ef46c8;
+}
+
+.signupLink:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .loginForm, .rightPanel {
+    flex: unset;
+    width: 100%;
+    padding: 30px;
+  }
+
+  .rightPanel p {
+    font-size: 24px;
+  }
+}
