@@ -13,7 +13,7 @@ import styles from "./calendar.module.css";
 import WidgetTimer from "../components/widgettimer";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
-import { isAuthenticated as checkAuthStatus } from "@/lib/auth"; 
+import { isAuthenticated as checkAuthStatus } from "@/lib/auth";
 
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -41,13 +41,46 @@ export default function Home() {
   const [points, setPoints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteMsg, setInviteMsg] = useState("");
+
+  // Hàm gửi lời mời kết bạn
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviteMsg("");
+    if (!inviteEmail) {
+      setInviteMsg("Vui lòng nhập email bạn bè.");
+      return;
+    }
+    // Lấy user hiện tại từ localStorage
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (!user?.id) {
+      setInviteMsg("Không tìm thấy thông tin người dùng.");
+      return;
+    }
+
+    // Gửi lời mời lên Supabase
+    const { error } = await supabase.from("friends").insert([
+      {
+        user_id: user.id,
+        friend_email: inviteEmail,
+        status: "pending",
+      },
+    ]);
+    if (error) {
+      setInviteMsg("Gửi lời mời thất bại: " + error.message);
+    } else {
+      setInviteMsg("Đã gửi lời mời kết bạn!");
+      setInviteEmail("");
+    }
+  };
+
   // 💡 1. THÊM STATE ĐỂ QUẢN LÝ NGÀY THÁNG HIỆN TẠI (CHO NÚT BACK/NEXT)
-  const [date, setDate] = useState(new Date()); 
-  
+  const [date, setDate] = useState(new Date());
+
   // 💡 2. THÊM STATE QUẢN LÝ CHẾ ĐỘ XEM (CHO NÚT MONTH/WEEK/DAY)
   const [view, setView] = useState("month");
-  
+
   const [newTask, setNewTask] = useState<any>({
     title: "",
     description: "",
@@ -62,19 +95,19 @@ export default function Home() {
     const checkAuth = () => {
       const user = localStorage.getItem('user');
       const session = localStorage.getItem('session');
-      
+
       console.log('Checking auth:', { user, session });
-      
+
       if (user && session) {
         try {
           const sessionData = JSON.parse(session);
           const now = Date.now() / 1000;
-          
+
           if (sessionData.expires_at && sessionData.expires_at > now) {
             console.log('User is authenticated');
             setIsAuthenticated(true);
             setLoading(false);
-            fetchTasks(); 
+            fetchTasks();
           } else {
             console.log('Session expired');
             localStorage.removeItem('user');
@@ -141,7 +174,7 @@ export default function Home() {
   const handleSelectSlot = (slotInfo: any) => {
     setNewTask({
       title: "",
-      description: "", 
+      description: "",
       start: slotInfo.start.toISOString().slice(0, 16),
       end: slotInfo.end.toISOString().slice(0, 16),
       color: "#6a879fff",
@@ -149,7 +182,7 @@ export default function Home() {
     });
     setShowAddModal(true);
   };
-  
+
   const handleEventDrop = async ({ event, start, end, isAllDay }: any) => {
     const updatedEvents = events.map((existingEvent) =>
       existingEvent.id === event.id ? { ...existingEvent, start, end, isAllDay } : existingEvent
@@ -166,7 +199,7 @@ export default function Home() {
 
     if (error) console.error("Error updating task date in Supabase:", error);
   };
-  
+
   const eventStyleGetter = (event: any) => {
     const backgroundColor = event.completed ? "#acfab8ff" : event.color || "#285882ff";
     return { style: { backgroundColor } };
@@ -195,10 +228,10 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         fontSize: '18px'
       }}>
@@ -209,10 +242,10 @@ export default function Home() {
 
   if (!isAuthenticated) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         fontSize: '18px'
       }}>
@@ -232,12 +265,12 @@ export default function Home() {
         <Link href="/list">
           <button className={styles.switchBtn}>📋 List</button>
         </Link>
-        <LogoutButton 
-          style={{ 
-            backgroundColor: '#dc3545', 
-            color: 'white', 
-            border: 'none', 
-            padding: '8px 16px', 
+        <LogoutButton
+          style={{
+            backgroundColor: '#dc3545',
+            color: 'white',
+            border: 'none',
+            padding: '8px 16px',
             borderRadius: '4px',
             marginLeft: '10px'
           }}
@@ -245,6 +278,27 @@ export default function Home() {
           🚪 Logout
         </LogoutButton>
       </div>
+
+
+      {/* === KẾT NỐI BẠN BÈ === */}
+      <div style={{ margin: "20px 0", textAlign: "center" }}>
+        <Link href="/friends">
+          <button
+            style={{
+              background: "#2563eb",
+              color: "#fff",
+              border: "none",
+              borderRadius: "6px",
+              padding: "8px 16px",
+              cursor: "pointer",
+            }}
+          >
+            👥 Invite Friends
+          </button>
+        </Link>
+      </div>
+
+
 
       <BackgroundCustomizer />
       <h2 className={styles.title}>My Task Calendar</h2>
@@ -311,14 +365,14 @@ export default function Home() {
           }}
           resizable={false}
           onEventDrop={handleEventDrop}
-          
+
           // 💡 QUẢN LÝ CHẾ ĐỘ XEM (MONTH/WEEK/DAY)
-          view={view} 
-          onView={setView} 
-          
+          view={view}
+          onView={setView}
+
           // 💡 QUẢN LÝ ĐIỀU HƯỚNG (BACK/NEXT)
           date={date}
-          onNavigate={setDate} 
+          onNavigate={setDate}
         />
       </div>
 
@@ -340,12 +394,12 @@ export default function Home() {
           setEvents={setEvents}
           events={events}
           setShowModal={setShowEditModal}
-          setPoints={setPoints} 
+          setPoints={setPoints}
         />
       )}
 
       {/* WIDGET TIMER */}
-      <WidgetTimer tasks={events} /> 
+      <WidgetTimer tasks={events} />
     </div>
   );
 }
@@ -385,6 +439,75 @@ function BackgroundCustomizer() {
         🖼
         <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
       </label>
+    </div>
+  );
+}
+
+function FriendInviteWidget() {
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteMsg, setInviteMsg] = useState("");
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail) {
+      setInviteMsg("Vui lòng nhập email bạn bè.");
+      return;
+    }
+    // Lấy user hiện tại từ localStorage
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (!user?.id) {
+      setInviteMsg("Vui lòng đăng nhập để gửi lời mời.");
+      return;
+    }
+
+    // Gửi lời mời lên Supabase
+    const { error } = await supabase.from("friends").insert([
+      {
+        user_id: user.id,
+        friend_email: inviteEmail,
+        status: "pending",
+      },
+    ]);
+    if (error) {
+      setInviteMsg("Gửi lời mời thất bại: " + error.message);
+    } else {
+      setInviteMsg("Đã gửi lời mời kết bạn!");
+      setInviteEmail("");
+    }
+  };
+
+  return (
+    <div className={styles.friendInviteWidget} style={{ margin: "24px 0" }}>
+      <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Kết nối với bạn bè qua email</h3>
+      <form onSubmit={handleInvite} style={{ display: "flex", gap: 8 }}>
+        <input
+          type="email"
+          placeholder="Nhập email bạn bè"
+          value={inviteEmail}
+          onChange={e => setInviteEmail(e.target.value)}
+          style={{ flex: 1, padding: 8, borderRadius: 4, border: "1px solid #ccc" }}
+          required
+        />
+        <button
+          type="submit"
+          style={{
+            background: "#3174ad",
+            color: "#fff",
+            border: "none",
+            borderRadius: 4,
+            padding: "8px 16px",
+            fontWeight: 600,
+            cursor: "pointer"
+          }}
+        >
+          Gửi lời mời
+        </button>
+      </form>
+      {inviteMsg && (
+        <div style={{ marginTop: 8, color: inviteMsg.startsWith("Đã gửi") ? "#22c55e" : "#e11d48" }}>
+          {inviteMsg}
+        </div>
+      )}
     </div>
   );
 }
@@ -472,6 +595,8 @@ function PointsBar({ points }: { points: number }) {
   );
 }
 
+
+
 function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events }) {
   // ✅ STATE: Dùng state cục bộ này để lưu lại các thay đổi khi bạn chỉnh sửa.
   const [editingEvent, setEditingEvent] = useState(selectedEvent);
@@ -511,9 +636,9 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events }
   const handleSave = async () => {
     // Chuyển đổi giá trị chuỗi (string) từ input thành đối tượng Date để lưu trữ
     const finalEventToSave = {
-        ...editingEvent,
-        start: new Date(editingEvent.start),
-        end: new Date(editingEvent.end),
+      ...editingEvent,
+      start: new Date(editingEvent.start),
+      end: new Date(editingEvent.end),
     };
 
     // Tìm sự kiện gốc để so sánh trạng thái 'completed' cho logic cộng điểm
