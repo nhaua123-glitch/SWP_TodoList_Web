@@ -77,7 +77,7 @@ export default function LoginPage() {
 
             <div className={styles.divider}>
               <div className={styles.line}></div>
-              <span>hoặc</span>
+              <span>or</span>
               <div className={styles.line}></div>
             </div>
 
@@ -91,15 +91,15 @@ export default function LoginPage() {
                 src="https://www.svgrepo.com/show/475656/google-color.svg"
                 alt="Google"
               />
-              Đăng nhập với Google
+              Login with Google
             </button>
 
             {error && <p className={styles.error}>{error}</p>}
 
             <p className={styles.signupText}>
-              Chưa có tài khoản?{" "}
+              Don’t have an account?{" "}
               <Link href="/signup" className={styles.signupLink}>
-                Đăng ký
+                Signup
               </Link>
             </p>
           </form>
@@ -112,8 +112,7 @@ export default function LoginPage() {
             alt="logo"
           />
           <p>
-            Spend a sweet summer with LaceMade and more exciting things are
-            waiting for you to discover.
+            A gentle way to manage your day.
           </p>
           <img
             src="https://lacemade.com/cdn/shop/files/2_e003ffac-8ca6-454a-9f48-e5435c086ad6_1800x.jpg?v=1747726087"
