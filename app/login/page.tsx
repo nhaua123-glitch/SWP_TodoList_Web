@@ -3,15 +3,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./login.module.css";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    setNeedsVerification(false);
 
     const formData = new FormData(e.currentTarget);
     const email = String(formData.get("email") || "").trim();
@@ -24,15 +28,35 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      // ✅ Giả lập login tạm
-      if (email === "test@gmail.com" && password === "123456") {
-        if (typeof window !== "undefined") {
-          localStorage.setItem("user", JSON.stringify({ email }));
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.needsVerification) {
+          setNeedsVerification(true);
+          setVerificationEmail(email);
         }
-        router.push("/calendar");
-      } else {
-        throw new Error("Sai email hoặc mật khẩu!");
+        throw new Error(data.error || "Đăng nhập thất bại");
       }
+
+      // Lưu session vào localStorage
+      if (data.user && data.session) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("session", JSON.stringify(data.session));
+        console.log("Login successful, user saved:", data.user);
+        console.log("Session saved:", data.session);
+      }
+
+      // Chuyển hướng đến trang chính
+      console.log("Redirecting to /calendar");
+      router.push("/calendar");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -40,9 +64,63 @@ export default function LoginPage() {
     }
   };
 
+  const handleResendVerification = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email: verificationEmail })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Gửi email thất bại");
+      }
+
+      setError("");
+      alert("Email xác thực đã được gửi lại! Vui lòng kiểm tra hộp thư.");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkEmailVerification = async (email: string) => {
+    try {
+      const response = await fetch("/api/auth/check-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.email_confirmed) {
+        setNeedsVerification(false);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Check verification error:", err);
+      return false;
+    }
+  };
+
   const handleGoogleLogin = async () => {
-    // 🔹 Hiện tại chỉ thông báo, chưa kết nối API
-    alert("Chức năng đăng nhập bằng Google đang được phát triển!");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/auth/callback", // chuyển về calendar sau khi login
+      },
+    });
+    if (error) setError(error.message);
   };
 
   return (
@@ -52,7 +130,6 @@ export default function LoginPage() {
         <div className={styles.loginForm}>
           <form className={styles.formBox} onSubmit={handleSubmit}>
             <h2>Login</h2>
-
             <label htmlFor="email">Email</label>
             <input
               id="email"
@@ -61,7 +138,6 @@ export default function LoginPage() {
               required
               disabled={loading}
             />
-
             <label htmlFor="password">Password</label>
             <input
               id="password"
@@ -70,7 +146,6 @@ export default function LoginPage() {
               required
               disabled={loading}
             />
-
             <button type="submit" disabled={loading}>
               {loading ? "Đang đăng nhập..." : "Login"}
             </button>
@@ -90,18 +165,22 @@ export default function LoginPage() {
               <img
                 src="https://www.svgrepo.com/show/475656/google-color.svg"
                 alt="Google"
+                style={{ width: 20, height: 20, marginRight: 8 }}
               />
               Login with Google
             </button>
 
-            {error && <p className={styles.error}>{error}</p>}
+{error && <p className={styles.error}>{error}</p>}
+<p className={styles.signupText}>
+  Don’t have an account?{" "}
+  <Link href="/signup" className={styles.signupLink}>
+    Signup
+  </Link>
+</p>
 
-            <p className={styles.signupText}>
-              Don’t have an account?{" "}
-              <Link href="/signup" className={styles.signupLink}>
-                Signup
               </Link>
             </p>
+            {error && <p className={styles.error}>{error}</p>}
           </form>
         </div>
 
@@ -110,6 +189,7 @@ export default function LoginPage() {
           <img
             src="https://lacemade.com/cdn/shop/files/logo_55354c7e-2cf6-4a7c-bcf3-f83d1c8ac0d2_230x.png?v=1747985772"
             alt="logo"
+            style={{ maxWidth: "220px", marginBottom: "20px" }}
           />
           <p>
             A gentle way to manage your day.
@@ -117,10 +197,10 @@ export default function LoginPage() {
           <img
             src="https://lacemade.com/cdn/shop/files/2_e003ffac-8ca6-454a-9f48-e5435c086ad6_1800x.jpg?v=1747726087"
             alt="Shopping illustration"
+            style={{ marginTop: "30px" }}
           />
         </div>
       </div>
     </div>
   );
 }
-
