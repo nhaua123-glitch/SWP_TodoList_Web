@@ -215,7 +215,7 @@ export default function LoginPage() {
 
             <p className={styles.signupText} style={{ marginTop: 10 }}>
               Chưa có tài khoản?{" "}
-              <Link href="/" className={styles.signupLink}>
+              <Link href="/signup" className={styles.signupLink}>
                 Đăng ký
               </Link>
             </p>
