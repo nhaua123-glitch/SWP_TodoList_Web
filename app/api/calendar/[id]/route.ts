@@ -4,10 +4,10 @@ import { supabase } from '@/lib/supabase';
 // GET: Lấy sự kiện lịch theo ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
+    const id = context.params.id;
     const { data, error } = await supabase
       .from('calendar_events')
       .select('*')

@@ -19,7 +19,7 @@
     "react-draggable": "^4.5.0",
     "react-rnd": "^10.5.2",
     "react-tooltip": "^5.29.1",
-    "resend": "^6.2.0"
+    "resend": "^6.2.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.14",
