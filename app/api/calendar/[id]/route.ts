@@ -1,33 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-// GET: Lấy sự kiện lịch theo ID
-export async function GET(
-  request: NextRequest,
-  context: { params: { id: string } }
-) {
-  try {
-    const id = context.params.id;
-    const { data, error } = await supabase
-      .from('calendar_events')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    if (!data) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
-    }
-
-    return NextResponse.json(data);
-  } catch (error) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
-}
-
 // PUT: Cập nhật sự kiện lịch
 export async function PUT(
   request: NextRequest,
