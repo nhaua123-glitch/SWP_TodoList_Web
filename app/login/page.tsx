@@ -96,10 +96,10 @@ export default function LoginPage() {
 
             {error && <p className={styles.error}>{error}</p>}
 
-            <p className={styles.signupText}>
-              Don't have account?{" "}
+            <p className={styles.signupText} style={{ marginTop: 10 }}>
+              Chưa có tài khoản?{" "}
               <Link href="/signup" className={styles.signupLink}>
-                Signup
+                Đăng ký
               </Link>
             </p>
           </form>

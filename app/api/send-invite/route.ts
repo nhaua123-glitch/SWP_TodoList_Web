@@ -10,9 +10,11 @@ export async function POST(req: Request) {
     if (!to || !fromUser || !inviteId) {
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
     }
+    
+    const acceptUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/invitefriends/accept?id=${inviteId}`;
+    const rejectUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/invitefriends/reject?id=${inviteId}`;
 
-    const acceptUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/accept-invite?id=${inviteId}`;
-    const rejectUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/reject-invite?id=${inviteId}`;
+
 
     const { error } = await resend.emails.send({
       from: process.env.EMAIL_FROM!,
