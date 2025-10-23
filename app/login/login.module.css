@@ -1,10 +1,9 @@
 @keyframes pastelBackgroundShift {
-  0% {background-position: 0% 50%;}
-  50% {background-position: 100% 50%;}
-  100% {background-position: 0% 50%;}
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-/* body chính */
 .page {
   margin: 0;
   min-height: 100vh;
@@ -21,15 +20,15 @@
   display: flex;
   width: 90%;
   max-width: 1200px;
-  min-height: 90%;
-  box-shadow: 0 0 25px rgba(0,0,0,0.1);
+  height: 80vh;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.1);
   border-radius: 20px;
   overflow: hidden;
-  background-color: rgba(255,255,255,0.4);
+  background-color: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(12px);
 }
 
-/* login-form bên trái */
+/* Login form */
 .loginForm {
   flex: 0 0 45%;
   display: flex;
@@ -40,12 +39,8 @@
 }
 
 @keyframes glowForm {
-  0% {
-    box-shadow: 0 0 12px rgba(255, 190, 220, 0.25);
-  }
-  100% {
-    box-shadow: 0 0 25px rgba(255, 170, 210, 0.4);
-  }
+  0% { box-shadow: 0 0 12px rgba(255, 190, 220, 0.25); }
+  100% { box-shadow: 0 0 25px rgba(255, 170, 210, 0.4); }
 }
 
 .formBox {
@@ -118,35 +113,36 @@
   text-align: center;
 }
 
-/* right panel */
+/* Right panel */
 .rightPanel {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  padding: 50px 40px;
+  padding: 40px;
   color: #5c6b73;
   text-align: center;
-}
-
-.rightPanel img {
-  max-width: 90%;
-  height: auto;
-  border-radius: 15px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
 .rightPanel p {
   font-family: 'Great Vibes', cursive;
   font-size: 35px;
-  line-height: 1.6;
-  max-width: 550px;
   color: #b085b7;
   text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
   margin-top: 10px;
 }
 
+.illustration {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center; /* cắt đều 2 bên thay vì lệch đầu */
+  border-radius: 20px;
+}
+
+
+/* Google button */
 .googleBtn {
   width: 100%;
   display: flex;
@@ -172,12 +168,7 @@
   transform: translateY(-2px) scale(1.01);
 }
 
-.googleBtn img {
-  width: 22px;
-  height: 22px;
-  margin-right: 6px;
-}
-
+/* Signup text */
 .signupText {
   text-align: center;
   font-size: 16px;
@@ -187,6 +178,7 @@
 
 .signupLink {
   color: #ef46c8;
+  font-weight: 700;
 }
 
 .signupLink:hover {
