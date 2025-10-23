@@ -35,14 +35,29 @@ const DragAndDropCalendar = withDragAndDrop(Calendar);
 export default function Home() {
   const router = useRouter();
   const [events, setEvents] = useState<any[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null); // Task ĐANG BỊ CLICK để edit
+  const [hoveredEvent, setHoveredEvent] = useState<any>(null);   // Task ĐANG BỊ RÊ CHUỘT qua
   const [points, setPoints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMsg, setInviteMsg] = useState("");
+  const clearTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+
+
+  // Khi di chuột ra khỏi task HOẶC sidebar
+  const handleMouseLeave = () => {
+    // Đặt timer để ẩn sidebar sau 300ms (đủ thời gian di chuyển chuột)
+    timerRef.current = setTimeout(() => {
+      setSelectedEvent(null);
+    }, 300);
+  };
 
   // Hàm gửi lời mời kết bạn
   const handleInvite = async (e: React.FormEvent) => {
@@ -147,7 +162,19 @@ export default function Home() {
   const handleAddTask = async () => {
     if (!newTask.title || !newTask.start || !newTask.end) return;
 
+    // 1. Lấy thông tin người dùng hiện tại
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // 2. Kiểm tra xem người dùng đã đăng nhập chưa
+    if (!user) {
+      console.error("User is not logged in. Cannot add task.");
+      // Bạn có thể thêm thông báo cho người dùng ở đây
+      return;
+    }
+
     const task = {
+      // 3. Thêm user_id vào task
+      user_id: user.id, 
       title: newTask.title,
       description: newTask.description,
       start_time: newTask.start,
@@ -158,20 +185,24 @@ export default function Home() {
     };
 
     const { data, error } = await supabase.from("tasks").insert([task]).select();
-    if (error) console.error(error);
-    else {
+    
+    if (error) {
+      console.error("Supabase insert error:", error); // In lỗi ra để xem rõ hơn
+    } else {
       const added = {
         ...data[0],
         start: new Date(data[0].start_time),
         end: new Date(data[0].end_time),
       };
       setEvents([...events, added]);
-      setShowAddModal(false);
       setNewTask({ title: "", start: "", end: "", color: "#3174ad", type: "work", description: "" });
     }
   };
 
   const handleSelectSlot = (slotInfo: any) => {
+    setSelectedEvent(null); // Chuyển sidebar về chế độ ADD
+    setHoveredEvent(null);  // Xóa mọi thông tin hover
+
     setNewTask({
       title: "",
       description: "",
@@ -180,8 +211,9 @@ export default function Home() {
       color: "#6a879fff",
       type: "work",
     });
-    setShowAddModal(true);
+
   };
+
 
   const handleEventDrop = async ({ event, start, end, isAllDay }: any) => {
     const updatedEvents = events.map((existingEvent) =>
@@ -213,13 +245,27 @@ export default function Home() {
     other: "🔹",
   };
 
+  const handleEventHover = (event: any) => {
+    if (!selectedEvent) { // Chỉ hiển thị hover NẾU không có task nào đang được edit
+      setHoveredEvent(event);
+    }
+  };
+
+  const handleEventMouseLeave = () => {
+    if (!selectedEvent) {
+      setHoveredEvent(null);
+    }
+  };
+
   const EventComponent = ({ event }: { event: any }) => {
     const start = new Date(event.start).toLocaleString();
     const end = new Date(event.end).toLocaleString();
     return (
       <span
         title={`📌 ${event.title}\n🗓 ${start} - ${end}\n📝 ${event.description || "No description"}`}
-        style={{ cursor: "pointer" }}
+        style={{ cursor: "pointer", display: "block", height: "100%" }} // Style để bắt hover dễ hơn
+        onMouseEnter={() => handleEventHover(event)}  
+        onMouseLeave={handleEventMouseLeave}
       >
         {taskTypeIcons[event.type] || "🔹"} {event.title}
       </span>
@@ -253,6 +299,8 @@ export default function Home() {
       </div>
     );
   }
+
+  
 
 
   return (
@@ -303,101 +351,71 @@ export default function Home() {
       <BackgroundCustomizer />
       <h2 className={styles.title}>My Task Calendar</h2>
 
-      {/* FORM ADD BÊN NGOÀI */}
-      <div className={styles.taskForm}>
-        <input
-          type="text"
-          placeholder="Add New Task Title"
-          value={newTask.title}
-          onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Description"
-          value={newTask.description}
-          onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-        />
-        <input
-          type="datetime-local"
-          value={newTask.start}
-          onChange={(e) => setNewTask({ ...newTask, start: e.target.value })}
-        />
-        <input
-          type="datetime-local"
-          value={newTask.end}
-          onChange={(e) => setNewTask({ ...newTask, end: e.target.value })}
-        />
-        <input
-          type="color"
-          value={newTask.color}
-          onChange={(e) => setNewTask({ ...newTask, color: e.target.value })}
-        />
-        <select
-          value={newTask.type}
-          onChange={(e) => setNewTask({ ...newTask, type: e.target.value })}
-        >
-          <option value="work">Công việc</option>
-          <option value="study">Học tập</option>
-          <option value="outdoor">Ngoài trời</option>
-          <option value="personal">Cá nhân</option>
-          <option value="other">Khác</option>
-        </select>
-        <button onClick={handleAddTask}>Add Task</button>
+
+      {/* ========================================= */}
+      {/* VÙNG NỘI DUNG CHÍNH (SIDEBAR + CALENDAR) */}
+      {/* ========================================= */}
+      <div className={styles.mainContentContainer}>
+
+        {/* SIDEBAR (Luôn hiển thị) */}
+        <div className={styles.editSidebar}>
+          
+          {/* LOGIC HIỂN THỊ CỦA SIDEBAR */}
+          {selectedEvent ? (
+            // 1. Nếu có task đang được CLICK (EDIT MODE)
+            <EditModal
+              selectedEvent={selectedEvent}
+              setSelectedEvent={setSelectedEvent}
+              setEvents={setEvents}
+              events={events}
+              setShowModal={() => setSelectedEvent(null)} // Nút Cancel/Save sẽ set selectedEvent về null
+              setPoints={setPoints}
+            />
+          ) : hoveredEvent ? (
+            // 2. Nếu không, kiểm tra có task đang được HOVER (VIEW MODE)
+            <TaskDetailsView event={hoveredEvent} />
+          ) : (
+            // 3. Mặc định là Form Add Task (ADD MODE)
+            <AddTaskForm
+              newTask={newTask}
+              setNewTask={setNewTask}
+              handleAddTask={handleAddTask}
+            />
+          )}
+
+        </div>
+
+        {/* CALENDAR */}
+        <div className={styles.calendarContainer}>
+          <DragAndDropCalendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: 600 }}
+            eventPropGetter={eventStyleGetter}
+            
+            // 💡 CẬP NHẬT onSelectEvent (Click vào task)
+            onSelectEvent={(event) => {
+              setSelectedEvent(event); // "Khóa" task này để edit
+              setHoveredEvent(null);  // Xóa thông tin hover
+            }}
+
+            selectable
+            onSelectSlot={handleSelectSlot} // Đã cập nhật ở trên
+            components={{
+              event: EventComponent, // Đã cập nhật ở trên
+            }}
+            resizable={false}
+            onEventDrop={handleEventDrop}
+            view={view}
+            onView={setView}
+            date={date}
+            onNavigate={setDate}
+          />
+        </div>
       </div>
-
-      {/* CALENDAR SỬ DỤNG DRAG AND DROP */}
-      <div className={styles.calendarContainer}>
-        <DragAndDropCalendar
-          localizer={localizer}
-          events={events}
-          startAccessor="start"
-          endAccessor="end"
-          style={{ height: 600 }}
-          eventPropGetter={eventStyleGetter}
-          onSelectEvent={(event) => {
-            setSelectedEvent(event);
-            setShowEditModal(true);
-          }}
-          selectable
-          onSelectSlot={handleSelectSlot}
-          components={{
-            event: EventComponent,
-          }}
-          resizable={false}
-          onEventDrop={handleEventDrop}
-
-          // 💡 QUẢN LÝ CHẾ ĐỘ XEM (MONTH/WEEK/DAY)
-          view={view}
-          onView={setView}
-
-          // 💡 QUẢN LÝ ĐIỀU HƯỚNG (BACK/NEXT)
-          date={date}
-          onNavigate={setDate}
-        />
-      </div>
-
-      {/* MODAL ADD */}
-      {showAddModal && (
-        <AddModal
-          newTask={newTask}
-          setNewTask={setNewTask}
-          handleAddTask={handleAddTask}
-          setShowAddModal={setShowAddModal}
-        />
-      )}
-
-      {/* MODAL EDIT */}
-      {showEditModal && selectedEvent && (
-        <EditModal
-          selectedEvent={selectedEvent}
-          setSelectedEvent={setSelectedEvent}
-          setEvents={setEvents}
-          events={events}
-          setShowModal={setShowEditModal}
-          setPoints={setPoints}
-        />
-      )}
-
+      
       {/* WIDGET TIMER */}
       <WidgetTimer tasks={events} />
     </div>
@@ -512,10 +530,31 @@ function FriendInviteWidget() {
   );
 }
 
-function AddModal({ newTask, setNewTask, handleAddTask, setShowAddModal }: any) {
+// 💡 TẠO COMPONENT MỚI ĐỂ XEM CHI TIẾT
+function TaskDetailsView({ event }: { event: any }) {
+  const taskTypeIcons = { // Lấy lại icons
+    work: "💼", study: "📚", outdoor: "🌳", personal: "🧘", other: "🔹"
+  };
+
   return (
-    <div className={styles.modaladd}>
-      <h3>Add Task</h3>
+    <div className={styles.taskDetailsView}>
+      <h3>Task Details</h3>
+      <h4>{taskTypeIcons[event.type as keyof typeof taskTypeIcons] || "🔹"} {event.title}</h4>
+      <p><strong>Bắt đầu:</strong> {new Date(event.start).toLocaleString()}</p>
+      <p><strong>Kết thúc:</strong> {new Date(event.end).toLocaleString()}</p>
+      <p><strong>Mô tả:</strong></p>
+      <p className={styles.taskDescription}>{event.description || "Không có mô tả."}</p>
+      <p className={styles.viewNote}>
+        Nhấn vào công việc để chỉnh sửa.
+      </p>
+    </div>
+  );
+}
+
+function AddTaskForm({ newTask, setNewTask, handleAddTask }: any) {
+  return (
+    <div className={styles.addForm}> 
+      <h3>Add New Task</h3>
       <label>
         Title:
         <input
@@ -570,8 +609,14 @@ function AddModal({ newTask, setNewTask, handleAddTask, setShowAddModal }: any) 
         </select>
       </label>
       <div className={styles.buttonGroupadd}>
-        <button className={styles.save} onClick={handleAddTask}>Add</button>
-        <button className={styles.cancel} onClick={() => setShowAddModal(false)}>Cancel</button>
+        <button className={styles.save} onClick={handleAddTask}>Add Task</button>
+        {/* Nút Cancel giờ sẽ clear form */}
+        <button 
+          className={styles.cancel} 
+          onClick={() => setNewTask({ title: "", start: "", end: "", color: "#3174ad", type: "work", description: "" })}
+        >
+          Clear
+        </button>
       </div>
     </div>
   );
@@ -694,7 +739,7 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events }
   };
 
   return (
-    <div className={styles.modal}>
+    <div className={styles.editForm}>
       <h3>Edit Task</h3>
       <label>
         Title:

@@ -22,6 +22,8 @@
   box-shadow: 0 4px 100px rgba(242, 12, 12, 0.1);
   max-width: 1200px;
   margin: 0 auto;
+  flex: 1; 
+  min-width: 0;
 }
 
 /* Đè style của react-big-calendar, nhưng scoping trong .calendarContainer */
@@ -81,34 +83,55 @@
 }
 
 
-/* Form thêm task */
-.taskForm {
+/* Container chính cho sidebar và lịch */
+.mainContentContainer {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
+  gap: 16px; /* Khoảng cách giữa sidebar và lịch */
+  max-width: 1200px; /* Đồng bộ với calendarContainer */
+  margin: 0 auto;
+}
+
+/* Sidebar edit task mới */
+.editSidebar {
+  width: 300px; /* Chiều rộng cố định cho sidebar */
+  flex-shrink: 0; /* Không cho phép sidebar co lại */
+  
+  /* Lấy style từ .modal cũ của bạn */
+  background: rgb(201, 236, 209);
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(38, 199, 17, 0.3);
+  
+  height: 600px; /* Đồng bộ chiều cao với lịch (style={{ height: 600 }}) */
+  overflow-y: auto; /* Cho phép cuộn nếu form quá dài */
+}
+
+/* CSS cho placeholder trong sidebar */
+.sidebarPlaceholder {
+  padding: 20px;
+  text-align: center;
+  color: #555;
+}
+.sidebarPlaceholder h4 {
+  margin-top: 40px;
+  font-size: 1.2em;
+  font-weight: 600;
+  color: #333;
+}
+.sidebarPlaceholder p {
+  font-size: 0.9em;
+  color: #777;
+  line-height: 1.5;
+}
+
+/* Form bên trong sidebar */
+.editForm {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  margin-bottom: 20px;
-  justify-content: center;
 }
 
-.taskForm input,
-.taskForm select {
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #dbbaba;
-}
-
-.taskForm button {
-  padding: 8px 12px;
-  background: #dd99d3;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.taskForm button:hover {
-  background: #90acc3;
-}
 
 
 /* Nút chọn màu nền / ảnh nền */
@@ -123,61 +146,42 @@
 }
 
 
-/* Modal add task trong calendar */
-.modaladd {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgb(235, 246, 238);
-  padding: 25px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(38, 199, 17, 0.3);
-  z-index: 999;
-  width: 350px;
-  max-width: 95%;
+
+
+.addForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.modaladd h3 {
+.addForm h3 {
+  margin-top: 0;
   margin-bottom: 15px;
-  text-align: center; /* canh ngang giữa */
+  text-align: center;
   font-size: 20px;
   font-weight: bold;
   color: #b4433f;
 }
 
-.modaladd label {
+.addForm label {
   display: flex;
-  margin-bottom: 10px;
-  text-align: left;
-  flex-direction: row;
-  align-items: center;   /* căn giữa theo chiều dọc */
-  justify-content: space-between;
+  flex-direction: column; /* Đổi thành cột */
+  font-weight: 600;
+  font-size: 14px;
 }
 
-.modaladd input,
-.modaladd select {
+.addForm input,
+.addForm select {
   width: 100%;
-  margin-top: 6px;
+  margin-top: 6px; /* Chuyển margin lên trên */
   padding: 4px;
   border-radius: 5px;
   border: 1px solid #ae7878;
-  margin-left: 5px;  
+  margin-left: 0; /* Xóa margin-left */
+  box-sizing: border-box;
 }
 
-.modaladd input[type="checkbox"] {
-  transform: scale(1.2);   /* to/nhỏ checkbox */
-  cursor: pointer;
-  justify-content: center;
-}
 
-.modaladd button {
-  margin-top: 10px;
-  padding: 6px 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
 
 .save {
   background: #8adb8d;     
@@ -209,54 +213,47 @@
 
 
 /* Modal chỉnh sửa task */
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgb(201, 236, 209);
-  padding: 25px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(38, 199, 17, 0.3);
-  z-index: 999;
-  width: 350px;
-  max-width: 95%;
-}
+/* Form chỉnh sửa task (TRONG SIDEBAR) */
 
-.modal h3 {
+/* Xóa .modal và thay bằng .editForm đã thêm ở trên */
+
+.editForm h3 {
   margin-bottom: 15px;
   text-align: center; /* canh ngang giữa */
   font-size: 20px;
   font-weight: bold;
   color: #b4433f;
+  margin-top: 0; /* Thêm để căn chỉnh đẹp hơn */
 }
 
-.modal label {
+.editForm label {
   display: flex;
   margin-bottom: 10px;
   text-align: left;
-  flex-direction: row;
-  align-items: center;   /* căn giữa theo chiều dọc */
-  justify-content: space-between;
+  flex-direction: column; /* Đổi thành column để đẹp hơn trong sidebar */
+  /* align-items: center; (không cần nữa) */
+  /* justify-content: space-between; (không cần nữa) */
 }
 
-.modal input,
-.modal select {
+.editForm input,
+.editForm select {
   width: 100%;
   margin-top: 6px;
   padding: 4px;
   border-radius: 5px;
   border: 1px solid #ae7878;
-  margin-left: 5px;  
+  margin-left: 0;  /* Reset margin-left */
+  box-sizing: border-box; /* Thêm để input không bị tràn */
 }
 
-.modal input[type="checkbox"] {
-  transform: scale(1.2);   /* to/nhỏ checkbox */
+.editForm input[type="checkbox"] {
+  transform: scale(1.2);
   cursor: pointer;
-  justify-content: center;
+  justify-content: flex-start; /* Căn lề trái */
+  width: auto; /* Reset width */
 }
 
-.modal button {
+.editForm button {
   margin-top: 10px;
   padding: 6px 10px;
   border: none;
@@ -326,3 +323,48 @@
   background: #547793;
 }
 
+
+
+.taskDetailsView {
+  padding: 10px;
+}
+.taskDetailsView h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+}
+.taskDetailsView h4 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+.taskDetailsView p {
+  margin: 5px 0 10px 0;
+  line-height: 1.4;
+  font-size: 14px;
+}
+.taskDetailsView p strong {
+  color: #111;
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+.taskDescription {
+  background: #f9f9f9;
+  border-radius: 4px;
+  padding: 8px;
+  min-height: 50px;
+  word-wrap: break-word;
+}
+.viewNote {
+  margin-top: 20px;
+  font-style: italic;
+  color: #555;
+  text-align: center;
+  font-size: 13px;
+}
