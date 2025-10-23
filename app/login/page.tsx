@@ -208,6 +208,7 @@ export default function LoginPage() {
             )}
 
             <p className={styles.signupText} style={{ marginTop: 10 }}>
+
               Don’t have an account?{" "}
               <Link href="/signup" className={styles.signupLink}>
                 Sign up
