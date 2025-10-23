@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
-import enUS from "date-fns/locale/en-US";
+import { enUS } from "date-fns/locale/en-US";
 import { createClient } from "@supabase/supabase-js";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import Link from "next/link";
@@ -42,9 +42,10 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMsg, setInviteMsg] = useState("");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearTimer = () => {
     if (timerRef.current) {
-      clearTimeout(timerRef.current);
+      clearTimeout(timerRef.current as ReturnType<typeof setTimeout>);
       timerRef.current = null;
     }
   };
@@ -365,7 +366,7 @@ export default function Home() {
             // 1. Nếu có task đang được CLICK (EDIT MODE)
             <EditModal
               selectedEvent={selectedEvent}
-              setSelectedEvent={setSelectedEvent}
+              
               setEvents={setEvents}
               events={events}
               setShowModal={() => setSelectedEvent(null)} // Nút Cancel/Save sẽ set selectedEvent về null
@@ -390,8 +391,8 @@ export default function Home() {
           <DragAndDropCalendar
             localizer={localizer}
             events={events}
-            startAccessor="start"
-            endAccessor="end"
+            startAccessor={(event: any) => new Date(event.start)}
+            endAccessor={(event: any) => new Date(event.end)}
             style={{ height: 600 }}
             eventPropGetter={eventStyleGetter}
             
@@ -408,8 +409,8 @@ export default function Home() {
             }}
             resizable={false}
             onEventDrop={handleEventDrop}
-            view={view}
-            onView={setView}
+            view={view as any}
+            onView={(newView: string) => setView(newView)}
             date={date}
             onNavigate={setDate}
           />
@@ -417,7 +418,7 @@ export default function Home() {
       </div>
       
       {/* WIDGET TIMER */}
-      <WidgetTimer tasks={events} />
+      <WidgetTimer tasks={events as unknown as never[]} />
     </div>
   );
 }
@@ -642,7 +643,26 @@ function PointsBar({ points }: { points: number }) {
 
 
 
-function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events }) {
+interface Task {
+  id: number;
+  title: string;
+  description?: string;
+  start: Date | string;
+  end: Date | string;
+  color: string;
+  type: string;
+  completed?: boolean;
+}
+
+interface EditModalProps {
+  selectedEvent: Task;
+  setEvents: React.Dispatch<React.SetStateAction<Task[]>>;
+  setShowModal: (show: boolean) => void;
+  setPoints: React.Dispatch<React.SetStateAction<number>>;
+  events: Task[];
+}
+
+function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events }: EditModalProps) {
   // ✅ STATE: Dùng state cục bộ này để lưu lại các thay đổi khi bạn chỉnh sửa.
   const [editingEvent, setEditingEvent] = useState(selectedEvent);
 
@@ -653,8 +673,10 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events }
   }, [selectedEvent]);
 
   // ✅ HANDLER: Một hàm xử lý duy nhất cho tất cả các input trong form.
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const target = e.target as HTMLInputElement | HTMLSelectElement;
+    const { name, value, type } = target;
+    const checked = (target as HTMLInputElement).checked;
     // Nếu là checkbox thì lấy giá trị 'checked', ngược lại lấy 'value'.
     const finalValue = type === 'checkbox' ? checked : value;
 
