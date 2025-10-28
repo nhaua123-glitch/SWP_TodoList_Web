@@ -42,6 +42,7 @@ export default function LoginPage() {
       });
 
       const data: AuthResponse = await response.json();
+      console.log("Login API Response:", { response: response.ok, data });
 
       if (!response.ok) {
         if (data.needsVerification) {
@@ -55,9 +56,26 @@ export default function LoginPage() {
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("session", JSON.stringify(data.session));
         console.log("Login successful:", data.user);
+        console.log("Session saved:", data.session);
+        
+        // Force refresh để middleware nhận diện session mới
+        console.log("Redirecting to /calendar...");
+        
+        // Thử nhiều cách redirect
+        try {
+          // Cách 1: window.location.href
+          window.location.href = "/calendar";
+        } catch (e) {
+          console.error("Redirect error:", e);
+          // Cách 2: router.replace với force refresh
+          router.replace("/calendar");
+          // Cách 3: reload page
+          setTimeout(() => window.location.reload(), 100);
+        }
+      } else {
+        console.error("Missing data:", { user: data.user, session: data.session });
+        throw new Error("Login response missing user or session data");
       }
-
-      router.push("/calendar");
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
     } finally {

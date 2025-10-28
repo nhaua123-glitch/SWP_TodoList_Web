@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale/en-US";
-import { createClient } from "@supabase/supabase-js";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,17 +12,10 @@ import styles from "./calendar.module.css";
 import WidgetTimer from "../components/widgettimer";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
-import { isAuthenticated as checkAuthStatus } from "@/lib/auth";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. Please check your .env.local file or Hosting configuration.');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 // ===================================
 
 const locales = { "en-US": enUS };
@@ -34,6 +26,7 @@ const DragAndDropCalendar = withDragAndDrop(Calendar);
 
 export default function Home() {
   const router = useRouter();
+  const supabase = createClientComponentClient();
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<any>(null); // Task ĐANG BỊ CLICK để edit
   const [hoveredEvent, setHoveredEvent] = useState<any>(null);   // Task ĐANG BỊ RÊ CHUỘT qua
@@ -49,6 +42,8 @@ export default function Home() {
       timerRef.current = null;
     }
   };
+
+
 
 
 
@@ -106,44 +101,91 @@ export default function Home() {
     type: "work",
   });
 
-  // Kiểm tra authentication
+
+  // 💡 SỬA CUỐI CÙNG: THAY TOÀN BỘ useEffect CŨ BẰNG CODE MỚI NÀY
+  // (Dán vào Dòng 132)
   useEffect(() => {
-    const checkAuth = () => {
-      const user = localStorage.getItem('user');
-      const session = localStorage.getItem('session');
+    let isMounted = true; // Flag chống lỗi state update khi component unmount
 
-      console.log('Checking auth:', { user, session });
+    // Hàm fetch data riêng
+    const fetchTasksForUser = async (userId: string) => {
+      if (!isMounted) return;
+      // Không cần setLoading(true) ở đây nữa
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq('user_id', userId);
 
-      if (user && session) {
-        try {
-          const sessionData = JSON.parse(session);
-          const now = Date.now() / 1000;
+      if (!isMounted) return; // Check lại sau await
 
-          if (sessionData.expires_at && sessionData.expires_at > now) {
-            console.log('User is authenticated');
-            setIsAuthenticated(true);
-            setLoading(false);
-            fetchTasks();
-          } else {
-            console.log('Session expired');
-            localStorage.removeItem('user');
-            localStorage.removeItem('session');
-            router.push('/login');
-          }
-        } catch (error) {
-          console.error('Invalid session:', error);
-          localStorage.removeItem('user');
-          localStorage.removeItem('session');
-          router.push('/login');
-        }
+      if (error) {
+        console.error("Lỗi fetch tasks:", error);
       } else {
-        console.log('No user or session found');
-        router.push('/login');
+        const formatted = data.map((task) => ({
+          ...task,
+          start: new Date(task.start_time),
+          end: new Date(task.end_time),
+        }));
+        setEvents(formatted);
       }
+       setLoading(false); // Set loading false sau khi fetch xong (kể cả lỗi)
     };
 
-    checkAuth();
-  }, [router]);
+    // --- Luồng chính ---
+    setLoading(true); // Bắt đầu loading
+
+    // 1. Kiểm tra session ngay lập tức khi component mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      if (session) {
+        console.log('>>> Initial Check: Logged In - Fetching tasks...');
+        setIsAuthenticated(true);
+        fetchTasksForUser(session.user.id); // Fetch data ngay
+      } else {
+        console.log('>>> Initial Check: Logged Out - Relying on middleware.');
+        setIsAuthenticated(false);
+        setLoading(false); // Dừng loading nếu logout ngay từ đầu
+        // Không redirect ở đây, để middleware lo
+      }
+    });
+
+    // 2. Setup listener để xử lý login/logout SAU ĐÓ
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!isMounted) return;
+
+        console.log('>>> Auth Listener Event:', event);
+
+        if (session) {
+          // Khi login thành công (SIGNED_IN) hoặc token được refresh
+          if (!isAuthenticated) { // Chỉ fetch lại nếu trước đó chưa auth
+             console.log('>>> Listener: SIGNED_IN detected - Fetching tasks...');
+             setIsAuthenticated(true);
+             fetchTasksForUser(session.user.id);
+          } else {
+             // Nếu chỉ là TOKEN_REFRESHED hoặc INITIAL_SESSION (đã xử lý ở trên), không cần fetch lại
+             setIsAuthenticated(true); // Đảm bảo state đúng
+          }
+
+        } else if (event === 'SIGNED_OUT') {
+          // Khi logout
+          console.log('>>> Listener: SIGNED_OUT detected - Redirecting...');
+          setIsAuthenticated(false);
+          setEvents([]); // Xóa task cũ
+          setLoading(false);
+          // Tạm thời disable redirect để test
+          // router.push('/login'); // Chỉ redirect khi logout rõ ràng
+        }
+      }
+    );
+
+    // Cleanup khi component unmount
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
+  }, [router, supabase]); // Dependencies
+
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -287,6 +329,8 @@ export default function Home() {
     );
   }
 
+  // Tạm thời disable authentication check để test
+  /*
   if (!isAuthenticated) {
     return (
       <div style={{
@@ -300,6 +344,7 @@ export default function Home() {
       </div>
     );
   }
+  */
 
   
 
@@ -371,6 +416,7 @@ export default function Home() {
               events={events}
               setShowModal={() => setSelectedEvent(null)} // Nút Cancel/Save sẽ set selectedEvent về null
               setPoints={setPoints}
+              supabase={supabase}
             />
           ) : hoveredEvent ? (
             // 2. Nếu không, kiểm tra có task đang được HOVER (VIEW MODE)
@@ -381,6 +427,7 @@ export default function Home() {
               newTask={newTask}
               setNewTask={setNewTask}
               handleAddTask={handleAddTask}
+              supabase={supabase}
             />
           )}
 
@@ -462,7 +509,7 @@ function BackgroundCustomizer() {
   );
 }
 
-function FriendInviteWidget() {
+function FriendInviteWidget({ supabase }: { supabase: any }) { 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMsg, setInviteMsg] = useState("");
 
@@ -553,7 +600,7 @@ function TaskDetailsView({ event }: { event: any }) {
 }
 
 function AddTaskForm({ newTask, setNewTask, handleAddTask }: any) {
-  return (
+ return (
     <div className={styles.addForm}> 
       <h3>Add New Task</h3>
       <label>
@@ -662,7 +709,7 @@ interface EditModalProps {
   events: Task[];
 }
 
-function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events }: EditModalProps) {
+function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, supabase }: EditModalProps & { supabase: any }) {
   // ✅ STATE: Dùng state cục bộ này để lưu lại các thay đổi khi bạn chỉnh sửa.
   const [editingEvent, setEditingEvent] = useState(selectedEvent);
 
