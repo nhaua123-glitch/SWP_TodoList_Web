@@ -102,79 +102,72 @@ export default function Home() {
   });
 
 
-  // 💡 SỬA CUỐI CÙNG: THAY TOÀN BỘ useEffect CŨ BẰNG CODE MỚI NÀY
-  // (Dán vào Dòng 132)
+  // 💡 CODE ĐƠN GIẢN ĐỂ FIX LỖI
   useEffect(() => {
-    let isMounted = true; // Flag chống lỗi state update khi component unmount
+    let isMounted = true;
 
-    // Hàm fetch data riêng
-    const fetchTasksForUser = async (userId: string) => {
+    // Hàm fetch data đơn giản
+    const fetchTasks = async () => {
       if (!isMounted) return;
-      // Không cần setLoading(true) ở đây nữa
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("*")
-        .eq('user_id', userId);
-
-      if (!isMounted) return; // Check lại sau await
-
-      if (error) {
-        console.error("Lỗi fetch tasks:", error);
-      } else {
-        const formatted = data.map((task) => ({
+      
+      setLoading(true);
+      console.log(">>> Fetching test data...");
+      
+      try {
+        const response = await fetch(`/api/tasks?t=${Date.now()}`);
+        const result = await response.json();
+        
+        if (!isMounted) return;
+        
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to fetch tasks');
+        }
+        
+        console.log(`>>> Fetched ${result.data.length} tasks`);
+        
+        const formatted = result.data.map((task: any) => ({
           ...task,
           start: new Date(task.start_time),
           end: new Date(task.end_time),
         }));
+        
         setEvents(formatted);
+        console.log(">>> Events set successfully");
+      } catch (error) {
+        console.error(">>> Error:", error);
+        alert(`Lỗi khi tải tasks: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setLoading(false);
       }
-       setLoading(false); // Set loading false sau khi fetch xong (kể cả lỗi)
     };
 
-    // --- Luồng chính ---
-    setLoading(true); // Bắt đầu loading
-
-    // 1. Kiểm tra session ngay lập tức khi component mount
+    // Chỉ fetch test data khi không có auth
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!isMounted) return;
+      
       if (session) {
-        console.log('>>> Initial Check: Logged In - Fetching tasks...');
+        console.log('>>> User logged in, but using test data for now');
         setIsAuthenticated(true);
-        fetchTasksForUser(session.user.id); // Fetch data ngay
       } else {
-        console.log('>>> Initial Check: Logged Out - Relying on middleware.');
+        console.log('>>> No user, fetching test data');
         setIsAuthenticated(false);
-        setLoading(false); // Dừng loading nếu logout ngay từ đầu
-        // Không redirect ở đây, để middleware lo
       }
+      
+      // Luôn fetch test data để đảm bảo có data
+      fetchTasks();
     });
 
-    // 2. Setup listener để xử lý login/logout SAU ĐÓ
+    // Auth listener đơn giản
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!isMounted) return;
-
-        console.log('>>> Auth Listener Event:', event);
-
+        console.log('>>> Auth event:', event);
+        
         if (session) {
-          // Khi login thành công (SIGNED_IN) hoặc token được refresh
-          if (!isAuthenticated) { // Chỉ fetch lại nếu trước đó chưa auth
-             console.log('>>> Listener: SIGNED_IN detected - Fetching tasks...');
-             setIsAuthenticated(true);
-             fetchTasksForUser(session.user.id);
-          } else {
-             // Nếu chỉ là TOKEN_REFRESHED hoặc INITIAL_SESSION (đã xử lý ở trên), không cần fetch lại
-             setIsAuthenticated(true); // Đảm bảo state đúng
-          }
-
-        } else if (event === 'SIGNED_OUT') {
-          // Khi logout
-          console.log('>>> Listener: SIGNED_OUT detected - Redirecting...');
+          setIsAuthenticated(true);
+        } else {
           setIsAuthenticated(false);
-          setEvents([]); // Xóa task cũ
-          setLoading(false);
-          // Tạm thời disable redirect để test
-          // router.push('/login'); // Chỉ redirect khi logout rõ ràng
+          setEvents([]);
         }
       }
     );
