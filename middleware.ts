@@ -17,6 +17,11 @@ export async function middleware(req: NextRequest) {
 
   const { pathname } = req.nextUrl;
 
+  // Cho phép truy cập tự do vào trang calendar trong giai đoạn test
+  if (pathname.startsWith("/calendar")) {
+    return res;
+  }
+
   // Kiểm tra session từ cookie nếu Supabase session không có
   let hasValidSession = !!session;
   if (!hasValidSession) {
@@ -35,8 +40,8 @@ export async function middleware(req: NextRequest) {
     return res;
   }
 
-  // 🧭 2. BẢO VỆ TRANG GIAO DIỆN
-  const protectedRoutes = ["/calendar", "/list", "/dashboard", "/friends"];
+  // 🧭 2. BẢO VỆ TRANG GIAO DIỆN (trừ calendar đã bypass ở trên)
+  const protectedRoutes = ["/list", "/dashboard", "/friends"];
   if (!hasValidSession && protectedRoutes.includes(pathname)) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
