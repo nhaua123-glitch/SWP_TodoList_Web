@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale/en-US";
-import { createClient } from "@supabase/supabase-js";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,17 +12,10 @@ import styles from "./calendar.module.css";
 import WidgetTimer from "../components/widgettimer";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
-import { isAuthenticated as checkAuthStatus } from "@/lib/auth";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. Please check your .env.local file or Hosting configuration.');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClientComponentClient();
 // ===================================
 
 const locales = { "en-US": enUS };
@@ -108,42 +100,41 @@ export default function Home() {
 
   // Kiểm tra authentication
   useEffect(() => {
-    const checkAuth = () => {
-      const user = localStorage.getItem('user');
-      const session = localStorage.getItem('session');
+    const checkUserAndFetchTasks = async () => {
+      // 1. Lấy user từ cookie session (cách làm đúng của Auth Helpers)
+      const { data: { user } } = await supabase.auth.getUser();
 
-      console.log('Checking auth:', { user, session });
+      if (user) {
+        // 2. Nếu có user, thì set state là đã đăng nhập
+        setIsAuthenticated(true);
 
-      if (user && session) {
-        try {
-          const sessionData = JSON.parse(session);
-          const now = Date.now() / 1000;
+        // 3. Lấy task CHỈ CỦA user này
+        const { data, error } = await supabase
+          .from("tasks")
+          .select("*")
+          .eq('user_id', user.id); // <-- Chỉ lấy task của user này
 
-          if (sessionData.expires_at && sessionData.expires_at > now) {
-            console.log('User is authenticated');
-            setIsAuthenticated(true);
-            setLoading(false);
-            fetchTasks();
-          } else {
-            console.log('Session expired');
-            localStorage.removeItem('user');
-            localStorage.removeItem('session');
-            router.push('/login');
-          }
-        } catch (error) {
-          console.error('Invalid session:', error);
-          localStorage.removeItem('user');
-          localStorage.removeItem('session');
-          router.push('/login');
+        if (error) {
+          console.error("Lỗi fetch tasks:", error);
+        } else {
+          const formatted = data.map((task) => ({
+            ...task,
+            start: new Date(task.start_time),
+            end: new Date(task.end_time),
+          }));
+          setEvents(formatted);
         }
+        setLoading(false);
       } else {
-        console.log('No user or session found');
+        // 4. Nếu không có user, ném về login (middleware nên làm việc này, nhưng đây là dự phòng)
+        setIsAuthenticated(false); // Thêm dòng này
         router.push('/login');
       }
     };
 
-    checkAuth();
-  }, [router]);
+    checkUserAndFetchTasks();
+  }, [router, supabase]); // Thêm supabase vào dependency array
+
 
   const fetchTasks = async () => {
     setLoading(true);
