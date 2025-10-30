@@ -45,8 +45,6 @@ export default function Home() {
 
 
 
-
-
   // Khi di chuột ra khỏi task HOẶC sidebar
   const handleMouseLeave = () => {
     // Đặt timer để ẩn sidebar sau 300ms (đủ thời gian di chuyển chuột)
@@ -102,82 +100,10 @@ export default function Home() {
   });
 
 
-  // 💡 CODE ĐƠN GIẢN ĐỂ FIX LỖI
+
   useEffect(() => {
-    let isMounted = true;
-
-    // Hàm fetch data đơn giản
-    const fetchTasks = async () => {
-      if (!isMounted) return;
-      
-      setLoading(true);
-      console.log(">>> Fetching test data...");
-      
-      try {
-        const response = await fetch(`/api/tasks?t=${Date.now()}`);
-        const result = await response.json();
-        
-        if (!isMounted) return;
-        
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to fetch tasks');
-        }
-        
-        console.log(`>>> Fetched ${result.data.length} tasks`);
-        
-        const formatted = result.data.map((task: any) => ({
-          ...task,
-          start: new Date(task.start_time),
-          end: new Date(task.end_time),
-        }));
-        
-        setEvents(formatted);
-        console.log(">>> Events set successfully");
-      } catch (error) {
-        console.error(">>> Error:", error);
-        alert(`Lỗi khi tải tasks: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Chỉ fetch test data khi không có auth
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return;
-      
-      if (session) {
-        console.log('>>> User logged in, but using test data for now');
-        setIsAuthenticated(true);
-      } else {
-        console.log('>>> No user, fetching test data');
-        setIsAuthenticated(false);
-      }
-      
-      // Luôn fetch test data để đảm bảo có data
-      fetchTasks();
-    });
-
-    // Auth listener đơn giản
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (!isMounted) return;
-        console.log('>>> Auth event:', event);
-        
-        if (session) {
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-          setEvents([]);
-        }
-      }
-    );
-
-    // Cleanup khi component unmount
-    return () => {
-      isMounted = false;
-      subscription?.unsubscribe();
-    };
-  }, [router, supabase]); // Dependencies
+    fetchTasks();
+  }, []);
 
 
   const fetchTasks = async () => {
@@ -667,7 +593,7 @@ function PointsBar({ points }: { points: number }) {
   return (
     <div style={{ margin: "20px auto", maxWidth: "400px", textAlign: "center" }}>
       <div style={{ fontWeight: "bold", marginBottom: "5px" }}>Points: {points}</div>
-      <div style={{ background: "#ecdfdfff", borderRadius: "6px", height: "20px", overflow: "hidden" }}>
+      <div style={{ background: "#ecdfdf", borderRadius: "6px", height: "20px", overflow: "hidden" }}>
         <div
           style={{
             width: `${Math.min(points, 100)}%`,
