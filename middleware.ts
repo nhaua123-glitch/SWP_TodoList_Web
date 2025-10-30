@@ -6,33 +6,31 @@ import type { NextRequest } from "next/server";
 export const runtime = 'nodejs';
 
 export async function middleware(req: NextRequest) {
-  // Tạo response và client Supabase cho middleware
   const res = NextResponse.next();
   const supabase = createMiddlewareClient({ req, res });
 
-  // Lấy thông tin session
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
   const { pathname } = req.nextUrl;
 
-  // Cho phép truy cập tự do vào trang calendar trong giai đoạn test
-  if (pathname.startsWith("/calendar")) {
+  // ⚡ Bypass test routes
+  const bypassRoutes = ["/calendar", "/friends"]; // ✅ Bỏ /friends khỏi check
+  if (bypassRoutes.some(r => pathname.startsWith(r))) {
     return res;
   }
 
-  // Kiểm tra session từ cookie nếu Supabase session không có
+  // Kiểm tra Supabase session
   let hasValidSession = !!session;
   if (!hasValidSession) {
     const accessToken = req.cookies.get('sb-access-token')?.value;
     hasValidSession = !!accessToken;
   }
 
-  // Debug logs (có thể remove khi deploy)
   console.log(`[Middleware] Path: ${pathname}, Supabase Session: ${!!session}, Cookie Token: ${!!req.cookies.get('sb-access-token')?.value}, HasValidSession: ${hasValidSession}`);
 
-  // 🧱 1. BẢO VỆ API PRIVATE
+  // 🧱 Bảo vệ API private
   if (pathname.startsWith("/api/private")) {
     if (!hasValidSession) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -40,24 +38,23 @@ export async function middleware(req: NextRequest) {
     return res;
   }
 
-  // 🧭 2. BẢO VỆ TRANG GIAO DIỆN (trừ calendar đã bypass ở trên)
-  const protectedRoutes = ["/list", "/dashboard", "/friends"];
+  // 🧭 Bảo vệ các trang khác
+  const protectedRoutes = ["/list", "/dashboard"];
   if (!hasValidSession && protectedRoutes.includes(pathname)) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
+  // Nếu đã login mà vào /login hoặc /signup → redirect
   if (hasValidSession && (pathname === "/login" || pathname === "/signup")) {
     return NextResponse.redirect(new URL("/calendar", req.url));
   }
 
-  // ✅ Nếu không vi phạm gì → cho phép truy cập
   return res;
 }
 
-// ⚙️ Config để middleware áp dụng đúng phạm vi
+// ⚙️ Config middleware
 export const config = {
   matcher: [
     "/((?!api/public|_next/static|_next/image|favicon.ico).*)",
   ],
 };
-

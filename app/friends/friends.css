@@ -1,0 +1,172 @@
+/* 🌸 Tổng thể trang */
+body {
+  background: linear-gradient(135deg, #fef6f9 0%, #f6faff 100%);
+  font-family: "Inter", "Poppins", "Segoe UI", sans-serif;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  letter-spacing: 0.2px;
+}
+
+/* 🩵 Container chính */
+.friends-container {
+  max-width: 800px;
+  margin: 60px auto;
+  background: #ffffffcc;
+  backdrop-filter: blur(12px);
+  border-radius: 24px;
+  box-shadow: 0 8px 30px rgba(163, 177, 198, 0.25);
+  padding: 48px 60px;
+  transition: all 0.3s ease-in-out;
+}
+
+.friends-container:hover {
+  box-shadow: 0 10px 40px rgba(150, 180, 210, 0.3);
+}
+
+/* 🌷 Tiêu đề */
+h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #4a5568;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+h3 {
+  font-size: 1.2rem;
+  color: #5e6c84;
+  margin-top: 40px;
+  border-left: 4px solid #c3dafe;
+  padding-left: 10px;
+}
+
+/* 🌿 Form gửi lời mời */
+form {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+input[type="email"] {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #e0e6f1;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  color: #333;
+  background-color: #fafbff;
+  transition: all 0.3s ease;
+}
+
+input[type="email"]:focus {
+  outline: none;
+  border-color: #a7b8ff;
+  box-shadow: 0 0 0 4px rgba(167, 184, 255, 0.25);
+  background-color: #fff;
+}
+
+button {
+  background: linear-gradient(135deg, #b5c7f7, #d8c7ff);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background: linear-gradient(135deg, #a8b7ff, #c4a5ff);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(175, 185, 255, 0.3);
+}
+
+/* 💌 Thông báo nhỏ */
+p {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #555;
+  margin-top: 8px;
+}
+
+p.success {
+  color: #2f855a;
+}
+
+p.error {
+  color: #c53030;
+}
+
+/* 🤍 Card bạn bè */
+.friend-item {
+  background: #fdfdff;
+  border: 1px solid #edf2f7;
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin: 12px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 3px 10px rgba(190, 200, 230, 0.12);
+  transition: all 0.3s ease;
+}
+
+.friend-item:hover {
+  background: #f4f7ff;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 18px rgba(170, 190, 240, 0.2);
+}
+
+/* 🌸 Email hiển thị */
+.friend-item span {
+  font-size: 0.95rem;
+  color: #4a4a6a;
+  font-weight: 500;
+}
+
+/* 🎀 Nút hành động trong mỗi friend-item */
+.friend-item button {
+  margin-left: 8px;
+  font-size: 0.9rem;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e2e8f0, #f1f5fb);
+  color: #333;
+  border: 1px solid #e0e6f1;
+  transition: all 0.2s ease;
+}
+
+.friend-item button:hover {
+  background: linear-gradient(135deg, #c7d2fe, #e9d8fd);
+  border-color: #c3bfff;
+  transform: translateY(-1px);
+}
+
+/* ✅ Nút chấp nhận / từ chối có màu riêng */
+.friend-item button.accept {
+  background: linear-gradient(135deg, #c6f6d5, #9ae6b4);
+  border: 1px solid #68d391;
+}
+
+.friend-item button.accept:hover {
+  background: linear-gradient(135deg, #a3e635, #86efac);
+}
+
+.friend-item button.reject {
+  background: linear-gradient(135deg, #fed7d7, #feb2b2);
+  border: 1px solid #f87171;
+}
+
+.friend-item button.reject:hover {
+  background: linear-gradient(135deg, #fca5a5, #f87171);
+}
+
+/* 🌼 Transition mượt mà */
+* {
+  transition: all 0.25s ease-in-out;
+}
