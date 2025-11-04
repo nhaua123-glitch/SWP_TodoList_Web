@@ -1,45 +1,44 @@
+// app/api/auth/logout/route.ts
+
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+
+// 💡 Đảm bảo Next.js không cache route này
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
-  try {
-    // Lấy session từ request headers hoặc body
-    const body = await request.json().catch(() => ({}));
-    const { session } = body;
+  // 1. Lấy hàm 'cookies' từ Next.js
+  const cookieStore = cookies();
 
-    // Nếu có session, sử dụng nó để logout
-    if (session) {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Logout error:', error);
-        // Vẫn trả về success vì có thể session đã hết hạn
-      }
-    } else {
-      // Logout global (tất cả sessions)
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Logout error:', error);
-      }
-    }
+  // 2. Tạo một Supabase client ĐẶC BIỆT
+  // client này có thể đọc và ghi cookies
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
-    return NextResponse.json({ 
-      message: 'Logged out successfully',
-      success: true 
-    });
-  } catch (error) {
+  // 3. Gọi signOut()
+  // Hàm này sẽ tự động tìm session từ cookie và xóa nó
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
     console.error('Logout API Error:', error);
-    return NextResponse.json({ 
-      error: 'Internal Server Error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    );
   }
+
+  // 4. Trả về thành công
+  // Trình duyệt sẽ nhận được cookie "session-cleared"
+  return NextResponse.json({ 
+    message: 'Logged out successfully',
+    success: true 
+  });
 }
 
-// GET method để test API
+// Giữ lại GET để test
 export async function GET() {
   return NextResponse.json({
     message: 'Logout API is working!',
-    method: 'GET',
     note: 'Use POST method to logout'
   });
 }

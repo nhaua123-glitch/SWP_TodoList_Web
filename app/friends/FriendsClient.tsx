@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import "./friends.css";
+
 
 interface Props {
   user: any;
+  supabase: any;
 }
-export default function FriendsClient({ user }: Props) {
-  const supabase = createClientComponentClient();
+
+export default function FriendsClient({ user, supabase }: Props) {
   const [friends, setFriends] = useState<any[]>([]);
   const [pendingReceived, setPendingReceived] = useState<any[]>([]);
   const [pendingSent, setPendingSent] = useState<any[]>([]);
@@ -17,8 +18,10 @@ export default function FriendsClient({ user }: Props) {
   const [profilesMap, setProfilesMap] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    if (user?.id) fetchFriends();
-  }, [user]);
+    if (user?.id) {
+      fetchFriends();
+    }
+  }, [user, supabase]); // Thêm supabase vào dependency array cho an toàn
 
   // ✅ Lấy toàn bộ bạn bè & lời mời
   const fetchFriends = async () => {
@@ -36,26 +39,12 @@ export default function FriendsClient({ user }: Props) {
 
     if (!data) return;
 
-    setFriends(
-      data.filter(
-        (f) =>
-          f.status === "accepted" &&
-          (f.sender_id === user.id || f.receiver_id === user.id)
-      )
-    );
+    setFriends(data.filter((f: { status: string; }) => f.status === "accepted"));
     setPendingReceived(
-      data.filter(
-        (f) =>
-          f.status === "pending" &&
-          (f.receiver_id === user.id || f.receiver_email === user.email)
-      )
+      data.filter((f: { status: string; receiver_id: any; }) => f.status === "pending" && f.receiver_id === user.id)
     );
     setPendingSent(
-      data.filter(
-        (f) =>
-          f.status === "pending" &&
-          (f.sender_id === user.id || f.sender_email === user.email)
-      )
+      data.filter((f: { status: string; sender_id: any; }) => f.status === "pending" && f.sender_id === user.id)
     );
 
     const ids = Array.from(
@@ -92,21 +81,15 @@ export default function FriendsClient({ user }: Props) {
     if (inviteEmail === user.email)
       return setInviteMsg("⚠️ Không thể gửi cho chính mình.");
 
-    try {
-      const res = await fetch("/api/private/friends/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toEmail: inviteEmail }),
-      });
-      const result = await res.json();
-      if (!res.ok) {
-        throw new Error(result?.error || "Send invite failed");
-      }
-      setInviteMsg("✅ Đã gửi lời mời!");
-      setInviteEmail("");
-      fetchFriends();
-    } catch (err: any) {
-      setInviteMsg("❌ Lỗi khi gửi lời mời: " + (err?.message || "Unknown"));
+    const { data: receiverProfile, error: findError } = await supabase
+      .from("profiles")
+      .select("id, email")
+      .ilike("email", inviteEmail.trim())
+      .maybeSingle();
+
+    if (findError) {
+      console.error("Find user error:", findError);
+      return setInviteMsg("❌ Lỗi khi tìm người dùng.");
     }
   };
 
@@ -125,6 +108,8 @@ export default function FriendsClient({ user }: Props) {
     fetchFriends();
   };
 
+  // 💡 5. LỖI CÚ PHÁP LÀ Ở ĐÂY:
+  // Lệnh "return" phải nằm BÊN TRONG hàm "FriendsClient"
   return (
     <div className="friends-container">
       <h2>👥 Bạn bè của tôi</h2>
@@ -150,9 +135,18 @@ export default function FriendsClient({ user }: Props) {
           <div key={p.id} className="friend-item">
             <span>{profilesMap[p.sender_id]?.email || p.sender_email || p.sender_id}</span>
             <div>
-              <button className="accept" onClick={() => updateStatus(p.id, "accepted")}>✅</button>
-<button className="reject" onClick={() => updateStatus(p.id, "rejected")}>❌</button>
-
+              <button
+                className="accept"
+                onClick={() => updateStatus(p.id, "accepted")}
+              >
+                ✅
+              </button>
+              <button
+                className="reject"
+                onClick={() => updateStatus(p.id, "rejected")}
+              >
+                ❌
+              </button>
             </div>
           </div>
         ))
@@ -192,4 +186,4 @@ export default function FriendsClient({ user }: Props) {
       )}
     </div>
   );
-}
+} 
