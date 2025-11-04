@@ -32,8 +32,8 @@ export default function Home() {
   const [points, setPoints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteMsg, setInviteMsg] = useState("");
+
+
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearTimer = () => {
     if (timerRef.current) {
@@ -143,39 +143,6 @@ export default function Home() {
       }, 300);
     };
 
-   // Hàm gửi lời mời kết bạn
-    const handleInvite = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setInviteMsg("");
-      if (!inviteEmail) {
-        setInviteMsg("Vui lòng nhập email bạn bè.");
-        return;
-      }
-
-    // 1. LẤY USER ĐÚNG CÁCH
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      setInviteMsg("Lỗi: Không tìm thấy người dùng. Bạn đã đăng nhập chưa?");
-      return;
-    }
-
-    // 2. GỬI LỜI MỜI VỚI USER ID CHÍNH XÁC
-    const { error } = await supabase.from("friends").insert([
-      {
-        user_id: user.id, // 👈 Dùng user.id an toàn từ Supabase
-        friend_email: inviteEmail,
-        status: "pending",
-      },
-    ]);
-
-    if (error) {
-      setInviteMsg("Gửi lời mời thất bại: " + error.message);
-    } else {
-      setInviteMsg("Đã gửi lời mời kết bạn!");
-      setInviteEmail("");
-    }
-  };
 
   const handleEventDrop = async ({ event, start, end, isAllDay }: any) => {
     const updatedEvents = events.map((existingEvent) =>
@@ -386,6 +353,10 @@ export default function Home() {
       setIsSidebarOpen(prev => !prev);
     };
 
+    const handleCloseSidebar = () => {
+        setIsSidebarOpen(false);
+    };
+
     // CSS cho icon 3 gạch (Hamburger)
     const HamburgerIcon = (
       <div 
@@ -393,140 +364,90 @@ export default function Home() {
           display: 'flex', 
           flexDirection: 'column', 
           justifyContent: 'space-around', 
-          width: '50%', // Chiều rộng của icon bên trong nút
-          height: '50%', // Chiều cao của icon bên trong nút
+          width: '50%',
+          height: '50%',
           margin: 'auto'
         }}
       >
-        <div style={{ width: '100%', height: '2px', background: 'white' }}></div>
-        <div style={{ width: '100%', height: '2px', background: 'white' }}></div>
-        <div style={{ width: '100%', height: '2px', background: 'white' }}></div>
+        {/* Dùng class cho thanh ngang */}
+        <div className={styles.iconBar}></div>
+        <div className={styles.iconBar}></div>
+        <div className={styles.iconBar}></div>
       </div>
     );
 
     return (
       <>
+      {/* Lớp phủ mờ khi Sidebar mở - bấm ra ngoài để tắt sidebar */}
+        {isSidebarOpen && (
+            <div 
+                onClick={handleCloseSidebar}
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(122, 118, 118, 0.3)', // Độ mờ 30%
+                    zIndex: 999, 
+                    transition: 'opacity 0.3s ease-in-out',
+                    cursor: 'pointer',
+                }}
+            />
+        )}
+
         {/* 1. Nút Menu/Toggle */}
         <button 
           onClick={toggleSidebar} 
           title="Mở Tùy chỉnh nền"
+          className={styles.toggleButton} // 🔥 SỬ DỤNG CLASS
           style={{ 
-            // Vị trí cố định (như cũ)
-            position: 'fixed', 
-            top: '15px', 
-            left: '15px', 
-            zIndex: 1001, 
-            cursor: 'pointer',
-            width: '30px',
-            height: '30px',
-            padding: '0',
-            borderRadius: '5px', 
-            background: '#f4e4f5ff', // Màu hồng nhạt
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            // Vị trí cố định (Giữ lại CSS in-line nếu bạn không muốn refactor toàn bộ)
+            // Tốt nhất là sử dụng class: className={styles.toggleButton}
+            transform: isSidebarOpen ? 'rotate(0deg)' : 'rotate(0deg)', // Bạn có thể thêm xoay ở đây
           }}
         >
-          {/* Nút bấm không hiển thị text, mà hiển thị icon */}
           {HamburgerIcon} 
         </button>
 
         {/* 2. Sidebar Menu */}
         <div 
-          className="bg-customizer-sidebar"
+          className={styles.sidebar} 
           style={{ 
-            position: 'fixed', 
-            top: 0, 
-            left: 0, 
-            height: '100%',
-            width: '280px', 
-            backgroundColor: '#fff8f8ff', 
-            zIndex: 1000, 
-            boxShadow: '2px 0 5px rgba(150, 46, 46, 0.2)',
-            padding: '20px 10px',
             transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
             transition: 'transform 0.3s ease-in-out',
-            boxSizing: 'border-box',
-            paddingTop: '60px'
+            pointerEvents: isSidebarOpen ? 'auto' : 'none', // Fix lỗi chặn click
           }}
         >
           {/* ... (Nội dung sidebar) ... */}
-          <h3 style={{ margin: '0 0 20px 0', paddingLeft: '10px' }}>Tùy Chỉnh Giao Diện</h3>
-          <div style={{ padding: '10px 10px', display: 'flex', alignItems: 'center', borderBottom: '1px solid #eee' }}>
-              <label title="Chọn màu nền" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', cursor: 'pointer' }}>
-                  <span style={{ fontSize: '16px' }}>Chọn Màu Nền</span>
-                  <input 
-                    type="color" 
-                    value={bgColor} 
-                    onChange={handleColorChange} 
-                    // Ẩn hoàn toàn input color
-                    style={{ display: 'none' }} 
-                  />
-                  <div 
-                    style={{
-                      width: '20px',
-                      height: '20px',
-                      color: '#888',
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                    title="Mở bảng chọn màu"
-                  >
+          <div className={styles.sidebarHeader}>
+              Tùy Chỉnh Giao Diện
+          </div>
+          <div className={styles.menuItem}>
+              <label title="Chọn màu nền" className={styles.labelWrapper}>
+                  <span className={styles.linkText}>Chọn Màu Nền</span>
+                  <input type="color" value={bgColor} onChange={handleColorChange} style={{ display: 'none' }} />
+                  <div className={styles.actionPlus} title="Mở bảng chọn màu" style={{ border: `2px solid ${bgColor}` }}>
                     +
                   </div>
               </label>
           </div>
-          <div style={{ padding: '10px 10px', display: 'flex', alignItems: 'center', borderBottom: '1px solid #eee' }}>
-              <label title="Upload ảnh nền" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', cursor: 'pointer' }}>
-                  <span style={{ fontSize: '16px' }}>Upload Ảnh Nền</span>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleImageUpload} 
-                    style={{ display: "none" }}
-                  />
-                  <div 
-                  style={{
-                    width: '20px',
-                    height: '20px',
-                    color: '#888', 
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                  title="Tải lên"
-                >
-                  +
-                </div>
+          <div className={styles.menuItem}>
+              <label title="Upload ảnh nền" className={styles.labelWrapper}>
+                  <span className={styles.linkText}>Upload Ảnh Nền</span>
+                  <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }}/>
+                  <div className={styles.actionPlus} title="Tải lên">
+                    +
+                  </div>
               </label>
           </div>
-          <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-            <div style={{ 
-                padding: '10px 10px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                borderBottom: '1px solid #eee',
-                cursor: 'pointer',
-                backgroundColor: 'transparent',
-            }}>
-                <span style={{ fontSize: '16px', fontWeight: 'bold' }}>🏠 Dashboard</span>
-            </div>
+          <Link 
+              href="/dashboard" 
+              className={styles.dashboardHeader}
+          >
+            <span className={styles.dashboardLink}>Dashboard</span>
           </Link>
-          <div 
-              // cố định ở góc dưới của Sidebar
-              style={{ 
-                position: 'absolute',
-                bottom: '10px', // Khoảng cách từ đáy
-                left: '10px',   // Khoảng cách từ lề trái
-                right: '10px',  // Khoảng cách từ lề phải (để chiếm hết chiều ngang)
-                zIndex: 10      // Đảm bảo nút nằm trên các nội dung khác nếu có
-              }}
-            >
+          <div className={styles.logoutContainer}> 
               <LogoutButton
                 style={{
                   backgroundColor: '#dc3545', 
@@ -535,11 +456,11 @@ export default function Home() {
                   padding: '10px 20px',
                   borderRadius: '4px',
                   cursor: 'pointer',
-                  width: '100%', // Chiếm hết chiều ngang
+                  width: '100%',
                   fontWeight: 'bold',
                 }}
               >
-                🚪 Đăng Xuất
+                 Đăng Xuất
               </LogoutButton>
           </div>
           </div>
@@ -548,74 +469,6 @@ export default function Home() {
     );
   }
 
-function FriendInviteWidget({ supabase }: { supabase: any }) { 
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteMsg, setInviteMsg] = useState("");
-
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inviteEmail) {
-      setInviteMsg("Vui lòng nhập email bạn bè.");
-      return;
-    }
-    // Lấy user hiện tại từ Supabase
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.id) {
-      setInviteMsg("Vui lòng đăng nhập để gửi lời mời.");
-      return;
-    }
-
-    // Gửi lời mời lên Supabase
-    const { error } = await supabase.from("friends").insert([
-      {
-        user_id: user.id,
-        friend_email: inviteEmail,
-        status: "pending",
-      },
-    ]);
-    if (error) {
-      setInviteMsg("Gửi lời mời thất bại: " + error.message);
-    } else {
-      setInviteMsg("Đã gửi lời mời kết bạn!");
-      setInviteEmail("");
-    }
-  };
-
-  return (
-    <div className={styles.friendInviteWidget} style={{ margin: "24px 0" }}>
-      <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Kết nối với bạn bè qua email</h3>
-      <form onSubmit={handleInvite} style={{ display: "flex", gap: 8 }}>
-        <input
-          type="email"
-          placeholder="Nhập email bạn bè"
-          value={inviteEmail}
-          onChange={e => setInviteEmail(e.target.value)}
-          style={{ flex: 1, padding: 8, borderRadius: 4, border: "1px solid #ccc" }}
-          required
-        />
-        <button
-          type="submit"
-          style={{
-            background: "#3174ad",
-            color: "#fff",
-            border: "none",
-            borderRadius: 4,
-            padding: "8px 16px",
-            fontWeight: 600,
-            cursor: "pointer"
-          }}
-        >
-          Gửi lời mời
-        </button>
-      </form>
-      {inviteMsg && (
-        <div style={{ marginTop: 8, color: inviteMsg.startsWith("Đã gửi") ? "#22c55e" : "#e11d48" }}>
-          {inviteMsg}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // 💡 TẠO COMPONENT MỚI ĐỂ XEM CHI TIẾT
 function TaskDetailsView({ event }: { event: any }) {
@@ -908,14 +761,16 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
           <option value="other">Khác</option>
         </select>
       </label>
-      <label>
+      <label className={styles.checkboxLabel}> 
         Completed:
+        <div className={styles.checkboxWrapper}> {/* 🔥 WRAPPER MỚI */}
         <input
-          type="checkbox"
-          name="completed" // Thêm thuộc tính 'name'
-          checked={!!editingEvent.completed} // Dùng 'checked' và đảm bảo là boolean
-          onChange={handleChange}
+            type="checkbox"
+            name="completed"
+            checked={!!editingEvent.completed}
+            onChange={handleChange}
         />
+    </div>
       </label>
       <div className={styles.buttonGroup}>
         <button className={styles.saveBtn} onClick={handleSave}>Save</button>

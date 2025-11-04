@@ -25,7 +25,7 @@ body {
 }
 
 /* 🌷 Tiêu đề */
-h2 {
+.friends-scope h2 {
   font-size: 1.8rem;
   font-weight: 700;
   color: #4a5568;
@@ -33,16 +33,16 @@ h2 {
   margin-bottom: 30px;
 }
 
-h3 {
+.friends-scope h3 {
   font-size: 1.2rem;
   color: #5e6c84;
   margin-top: 40px;
-  border-left: 4px solid #c3dafe;
+  border-left: 4 px solid #c3dafe;
   padding-left: 10px;
 }
 
 /* 🌿 Form gửi lời mời */
-form {
+.friends-scope form {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -50,7 +50,7 @@ form {
   margin-bottom: 20px;
 }
 
-input[type="email"] {
+.friends-scope input[type="email"] {
   flex: 1;
   padding: 12px 16px;
   border: 1px solid #e0e6f1;
@@ -61,14 +61,14 @@ input[type="email"] {
   transition: all 0.3s ease;
 }
 
-input[type="email"]:focus {
+.friends-scope input[type="email"]:focus {
   outline: none;
   border-color: #a7b8ff;
   box-shadow: 0 0 0 4px rgba(167, 184, 255, 0.25);
   background-color: #fff;
 }
 
-button {
+.friends-scope button {
   background: linear-gradient(135deg, #b5c7f7, #d8c7ff);
   color: #fff;
   border: none;
@@ -80,30 +80,31 @@ button {
   transition: all 0.3s ease;
 }
 
-button:hover {
+.friends-scope button:hover {
   background: linear-gradient(135deg, #a8b7ff, #c4a5ff);
   transform: translateY(-2px);
   box-shadow: 0 6px 14px rgba(175, 185, 255, 0.3);
 }
 
 /* 💌 Thông báo nhỏ */
-p {
+.friends-scope p {
   text-align: center;
   font-size: 0.95rem;
   color: #555;
   margin-top: 8px;
 }
 
-p.success {
+.friends-scope p.success {
   color: #2f855a;
 }
 
-p.error {
+
+.friends-scope p.error {
   color: #c53030;
 }
 
 /* 🤍 Card bạn bè */
-.friend-item {
+.friends-scope .friend-item {
   background: #fdfdff;
   border: 1px solid #edf2f7;
   border-radius: 16px;
@@ -116,21 +117,21 @@ p.error {
   transition: all 0.3s ease;
 }
 
-.friend-item:hover {
+.friends-scope .friend-item:hover {
   background: #f4f7ff;
   transform: translateY(-2px);
   box-shadow: 0 5px 18px rgba(170, 190, 240, 0.2);
 }
 
 /* 🌸 Email hiển thị */
-.friend-item span {
+.friends-scope .friend-item span {
   font-size: 0.95rem;
   color: #4a4a6a;
   font-weight: 500;
 }
 
 /* 🎀 Nút hành động trong mỗi friend-item */
-.friend-item button {
+.friends-scope .friend-item button {
   margin-left: 8px;
   font-size: 0.9rem;
   padding: 8px 12px;
@@ -141,28 +142,28 @@ p.error {
   transition: all 0.2s ease;
 }
 
-.friend-item button:hover {
+.friends-scope .friend-item button:hover {
   background: linear-gradient(135deg, #c7d2fe, #e9d8fd);
   border-color: #c3bfff;
   transform: translateY(-1px);
 }
 
 /* ✅ Nút chấp nhận / từ chối có màu riêng */
-.friend-item button.accept {
+.friends-scope .friend-item button.accept {
   background: linear-gradient(135deg, #c6f6d5, #9ae6b4);
   border: 1px solid #68d391;
 }
 
-.friend-item button.accept:hover {
+.friends-scope .friend-item button.accept:hover {
   background: linear-gradient(135deg, #a3e635, #86efac);
 }
 
-.friend-item button.reject {
+.friends-scope .friend-item button.reject {
   background: linear-gradient(135deg, #fed7d7, #feb2b2);
   border: 1px solid #f87171;
 }
 
-.friend-item button.reject:hover {
+.friends-scope .friend-item button.reject:hover {
   background: linear-gradient(135deg, #fca5a5, #f87171);
 }
 

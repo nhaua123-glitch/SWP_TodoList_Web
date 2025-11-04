@@ -111,79 +111,81 @@ export default function FriendsClient({ user, supabase }: Props) {
   // 💡 5. LỖI CÚ PHÁP LÀ Ở ĐÂY:
   // Lệnh "return" phải nằm BÊN TRONG hàm "FriendsClient"
   return (
-    <div className="friends-container">
-      <h2>👥 Bạn bè của tôi</h2>
+    <div className="friends-scope"> 
+      <div className="friends-container">
+        <h2>👥 Bạn bè của tôi</h2>
 
-      {/* Form gửi lời mời */}
-      <form onSubmit={handleInvite}>
-        <input
-          type="email"
-          placeholder="Nhập email bạn bè"
-          value={inviteEmail}
-          onChange={(e) => setInviteEmail(e.target.value)}
-        />
-        <button type="submit">Gửi</button>
-      </form>
-      {inviteMsg && <p>{inviteMsg}</p>}
+        {/* Form gửi lời mời */}
+        <form onSubmit={handleInvite}>
+          <input
+            type="email"
+            placeholder="Nhập email bạn bè"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+          />
+          <button type="submit">Gửi</button>
+        </form>
+        {inviteMsg && <p>{inviteMsg}</p>}
 
-      {/* Lời mời đến */}
-      <h3>📥 Lời mời đang chờ</h3>
-      {pendingReceived.length === 0 ? (
-        <p>Không có lời mời nào.</p>
-      ) : (
-        pendingReceived.map((p) => (
-          <div key={p.id} className="friend-item">
-            <span>{profilesMap[p.sender_id]?.email || p.sender_email || p.sender_id}</span>
-            <div>
-              <button
-                className="accept"
-                onClick={() => updateStatus(p.id, "accepted")}
-              >
-                ✅
-              </button>
-              <button
-                className="reject"
-                onClick={() => updateStatus(p.id, "rejected")}
-              >
-                ❌
-              </button>
-            </div>
-          </div>
-        ))
-      )}
-
-      {/* Lời mời đã gửi */}
-      <h3>⏳ Lời mời đã gửi</h3>
-      {pendingSent.length === 0 ? (
-        <p>Không có lời mời đã gửi.</p>
-      ) : (
-        pendingSent.map((p) => (
-          <div key={p.id} className="friend-item">
-            <span>{profilesMap[p.receiver_id]?.email || p.receiver_email || p.receiver_id}</span>
-            <div>
-              <button onClick={() => deleteFriend(p.id)}>🕓 Hủy</button>
-            </div>
-          </div>
-        ))
-      )}
-
-      {/* Danh sách bạn bè */}
-      <h3>✅ Danh sách bạn bè</h3>
-      {friends.length === 0 ? (
-        <p>Bạn chưa có bạn bè nào.</p>
-      ) : (
-        friends.map((f) => {
-          const friendId = f.sender_id === user.id ? f.receiver_id : f.sender_id;
-          return (
-            <div key={f.id} className="friend-item">
-              <span>{profilesMap[friendId]?.email || f.receiver_email || f.sender_email || friendId}</span>
+        {/* Lời mời đến */}
+        <h3>📥 Lời mời đang chờ</h3>
+        {pendingReceived.length === 0 ? (
+          <p>Không có lời mời nào.</p>
+        ) : (
+          pendingReceived.map((p) => (
+            <div key={p.id} className="friend-item">
+              <span>{profilesMap[p.sender_id]?.email || p.sender_email || p.sender_id}</span>
               <div>
-                <button onClick={() => deleteFriend(f.id)}>🗑</button>
+                <button
+                  className="accept"
+                  onClick={() => updateStatus(p.id, "accepted")}
+                >
+                  ✅
+                </button>
+                <button
+                  className="reject"
+                  onClick={() => updateStatus(p.id, "rejected")}
+                >
+                  ❌
+                </button>
               </div>
             </div>
-          );
-        })
-      )}
-    </div>
+          ))
+        )}
+
+        {/* Lời mời đã gửi */}
+        <h3>⏳ Lời mời đã gửi</h3>
+        {pendingSent.length === 0 ? (
+          <p>Không có lời mời đã gửi.</p>
+        ) : (
+          pendingSent.map((p) => (
+            <div key={p.id} className="friend-item">
+              <span>{profilesMap[p.receiver_id]?.email || p.receiver_email || p.receiver_id}</span>
+              <div>
+                <button onClick={() => deleteFriend(p.id)}>🕓 Hủy</button>
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Danh sách bạn bè */}
+        <h3>✅ Danh sách bạn bè</h3>
+        {friends.length === 0 ? (
+          <p>Bạn chưa có bạn bè nào.</p>
+        ) : (
+          friends.map((f) => {
+            const friendId = f.sender_id === user.id ? f.receiver_id : f.sender_id;
+            return (
+              <div key={f.id} className="friend-item">
+                <span>{profilesMap[friendId]?.email || f.receiver_email || f.sender_email || friendId}</span>
+                <div>
+                  <button onClick={() => deleteFriend(f.id)}>🗑</button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+      </div>
   );
 } 
