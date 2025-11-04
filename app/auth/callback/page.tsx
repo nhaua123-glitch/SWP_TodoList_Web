@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function AuthCallback() {
   const [status, setStatus] = useState("Đang xác thực...");
@@ -11,7 +11,7 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // Xử lý URL parameters từ email confirmation
+        const supabase = createClientComponentClient();
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -22,20 +22,11 @@ export default function AuthCallback() {
         }
 
         if (data.session && data.session.user) {
-          // Kiểm tra email đã được confirm chưa
-          if (data.session.user.email_confirmed_at) {
-            // Lưu session vào localStorage
-            localStorage.setItem("user", JSON.stringify(data.session.user));
-            localStorage.setItem("session", JSON.stringify(data.session));
-            
-            setStatus("Xác thực thành công!");
-            setTimeout(() => {
-              router.push("/calendar");
-            }, 2000);
-          } else {
-            setError("Email chưa được xác thực hoàn toàn");
-            setStatus("Xác thực thất bại");
-          }
+          // Cookie đã được thiết lập bởi Supabase; chỉ cần chuyển hướng
+          setStatus("Xác thực thành công!");
+          setTimeout(() => {
+            router.push("/calendar");
+          }, 1200);
         } else {
           setError("Không tìm thấy session hoặc user");
           setStatus("Xác thực thất bại");
