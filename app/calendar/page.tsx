@@ -251,12 +251,6 @@ export default function Home() {
   return (
     <div className={styles.page}>
       <PointsBar points={points} />
-      <div className={styles.navbar}>
-        <Link href="/dashboard">
-          <button className={styles.switchBtn}>🏠 Dashboard</button>
-        </Link>
-      </div>
-
 
       {/* === KẾT NỐI BẠN BÈ === */}
       <div style={{ margin: "20px 0", textAlign: "center" }}>
@@ -511,6 +505,18 @@ export default function Home() {
                 </div>
               </label>
           </div>
+          <Link href="/dashboard" style={{ textDecoration: 'none' }}>
+            <div style={{ 
+                padding: '10px 10px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                borderBottom: '1px solid #eee',
+                cursor: 'pointer',
+                backgroundColor: 'transparent',
+            }}>
+                <span style={{ fontSize: '16px', fontWeight: 'bold' }}>🏠 Dashboard</span>
+            </div>
+          </Link>
           <div 
               // cố định ở góc dưới của Sidebar
               style={{ 
