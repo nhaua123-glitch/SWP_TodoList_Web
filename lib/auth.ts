@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+"use client";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export interface User {
   id: string;
@@ -6,99 +7,53 @@ export interface User {
   email_confirmed_at?: string;
 }
 
-export interface Session {
-  access_token: string;
-  refresh_token: string;
-  expires_at: number;
-  user: User;
+export async function getCurrentUser(): Promise<User | null> {
+  try {
+    const supabase = createClientComponentClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error) return null;
+    return (data.user as unknown as User) ?? null;
+  } catch (err) {
+    console.error('getCurrentUser error:', err);
+    return null;
+  }
 }
 
-// Lấy user từ localStorage
-export const getCurrentUser = (): User | null => {
-  if (typeof window === 'undefined') return null;
-  
+export async function getCurrentSession() {
   try {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
-  } catch (error) {
-    console.error('Error getting current user:', error);
+    const supabase = createClientComponentClient();
+    const { data, error } = await supabase.auth.getSession();
+    if (error) return null;
+    return data.session ?? null;
+  } catch (err) {
+    console.error('getCurrentSession error:', err);
     return null;
   }
-};
+}
 
-// Lấy session từ localStorage
-export const getCurrentSession = (): Session | null => {
-  if (typeof window === 'undefined') return null;
-  
+export async function isAuthenticated(): Promise<boolean> {
+  const session = await getCurrentSession();
+  return !!session;
+}
+
+export async function logout(): Promise<boolean> {
   try {
-    const sessionStr = localStorage.getItem('session');
-    return sessionStr ? JSON.parse(sessionStr) : null;
-  } catch (error) {
-    console.error('Error getting current session:', error);
-    return null;
-  }
-};
-
-// Kiểm tra user đã đăng nhập chưa
-export const isAuthenticated = (): boolean => {
-  const user = getCurrentUser();
-  const session = getCurrentSession();
-  
-  return !!(user && session && session.expires_at > Date.now() / 1000);
-};
-
-// Logout function
-export const logout = async (): Promise<boolean> => {
-  try {
-    const session = getCurrentSession();
-    
-    // Gọi API logout
-    const response = await fetch('/api/auth/logout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ session })
-    });
-
-    const data = await response.json();
-
-    // Xóa dữ liệu khỏi localStorage
-    localStorage.removeItem('user');
-    localStorage.removeItem('session');
-    
-    // Xóa cookies
-    document.cookie = 'user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    
-    // Logout từ Supabase client
+    const supabase = createClientComponentClient();
     await supabase.auth.signOut();
-
-    return data.success || true; // Luôn trả về true để đảm bảo logout
+    return true;
   } catch (error) {
     console.error('Logout error:', error);
-    
-    // Vẫn xóa dữ liệu local ngay cả khi API fail
-    localStorage.removeItem('user');
-    localStorage.removeItem('session');
-    
-    // Xóa cookies
-    if (typeof document !== 'undefined') {
-      document.cookie = 'user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    }
-    
-    return true;
+    return false;
   }
-};
+}
 
-// Redirect đến login nếu chưa đăng nhập
-export const requireAuth = (): boolean => {
-  if (!isAuthenticated()) {
+export async function requireAuth(): Promise<boolean> {
+  const authed = await isAuthenticated();
+  if (!authed) {
     if (typeof window !== 'undefined') {
       window.location.href = '/login';
     }
     return false;
   }
   return true;
-};
+}

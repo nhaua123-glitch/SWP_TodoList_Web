@@ -21,14 +21,8 @@ export async function middleware(req: NextRequest) {
     return res;
   }
 
-  // Kiểm tra Supabase session
-  let hasValidSession = !!session;
-  if (!hasValidSession) {
-    const accessToken = req.cookies.get('sb-access-token')?.value;
-    hasValidSession = !!accessToken;
-  }
-
-  console.log(`[Middleware] Path: ${pathname}, Supabase Session: ${!!session}, Cookie Token: ${!!req.cookies.get('sb-access-token')?.value}, HasValidSession: ${hasValidSession}`);
+  // Kiểm tra Supabase session (dựa hoàn toàn vào Auth Helpers)
+  const hasValidSession = !!session;
 
   // 🧱 Bảo vệ API private
   if (pathname.startsWith("/api/private")) {
@@ -44,10 +38,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Nếu đã login mà vào /login hoặc /signup → redirect
-  if (hasValidSession && (pathname === "/login" || pathname === "/signup")) {
-    return NextResponse.redirect(new URL("/calendar", req.url));
-  }
+  // Cho phép truy cập /login và /signup ngay cả khi đã có session
 
   return res;
 }

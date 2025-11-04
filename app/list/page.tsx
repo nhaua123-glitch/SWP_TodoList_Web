@@ -1,16 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import LogoutButton from "@/components/LogoutButton";
 import styles from "./list.module.css";
 
-const supabase = createClient(
-  "https://lmgbtjieffptlrvjkimp.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtZ2J0amllZmZwdGxydmpraW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4ODEyNzEsImV4cCI6MjA3NDQ1NzI3MX0.-9fEQrwQvzHZfcWIOiukGKmcVyECoMUf8fRffWSPlEs"
-);
+const supabase = createClientComponentClient();
 
 export default function ListPage() {
   const router = useRouter();
@@ -20,33 +17,15 @@ export default function ListPage() {
 
   // Kiểm tra authentication
   useEffect(() => {
-    const checkAuth = () => {
-      const user = localStorage.getItem('user');
-      const session = localStorage.getItem('session');
-      
-      if (user && session) {
-        try {
-          const sessionData = JSON.parse(session);
-          const now = Date.now() / 1000;
-          
-          if (sessionData.expires_at && sessionData.expires_at > now) {
-            setIsAuthenticated(true);
-            fetchTasks();
-          } else {
-            localStorage.removeItem('user');
-            localStorage.removeItem('session');
-            router.push('/login');
-          }
-        } catch (error) {
-          localStorage.removeItem('user');
-          localStorage.removeItem('session');
-          router.push('/login');
-        }
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsAuthenticated(true);
+        fetchTasks();
       } else {
         router.push('/login');
       }
     };
-
     checkAuth();
   }, [router]);
 

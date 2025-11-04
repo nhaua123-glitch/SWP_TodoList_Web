@@ -552,8 +552,8 @@ function FriendInviteWidget({ supabase }: { supabase: any }) {
       setInviteMsg("Vui lòng nhập email bạn bè.");
       return;
     }
-    // Lấy user hiện tại từ localStorage
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    // Lấy user hiện tại từ Supabase
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user?.id) {
       setInviteMsg("Vui lòng đăng nhập để gửi lời mời.");
       return;

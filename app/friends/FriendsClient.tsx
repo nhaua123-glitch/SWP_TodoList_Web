@@ -15,6 +15,7 @@ export default function FriendsClient({ user, supabase }: Props) {
   const [pendingSent, setPendingSent] = useState<any[]>([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMsg, setInviteMsg] = useState("");
+  const [profilesMap, setProfilesMap] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (user?.id) {
@@ -27,7 +28,9 @@ export default function FriendsClient({ user, supabase }: Props) {
     const { data, error } = await supabase
       .from("friends")
       .select("*")
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+      .or(
+        `sender_id.eq.${user.id},receiver_id.eq.${user.id},sender_email.eq.${user.email},receiver_email.eq.${user.email}`
+      );
 
     if (error) {
       console.error("Supabase fetch error:", JSON.stringify(error, null, 2));
@@ -43,6 +46,29 @@ export default function FriendsClient({ user, supabase }: Props) {
     setPendingSent(
       data.filter((f: { status: string; sender_id: any; }) => f.status === "pending" && f.sender_id === user.id)
     );
+
+    const ids = Array.from(
+      new Set(
+        data
+          .flatMap((f) => [f.sender_id, f.receiver_id])
+          .filter((id) => id && id !== user.id)
+      )
+    );
+
+    if (ids.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, email, username")
+        .in("id", ids);
+
+      if (!profilesError && profilesData) {
+        const map: Record<string, any> = {};
+        for (const p of profilesData) {
+          map[p.id] = p;
+        }
+        setProfilesMap(map);
+      }
+    }
   };
 
   // ✅ Gửi lời mời kết bạn
@@ -50,7 +76,8 @@ export default function FriendsClient({ user, supabase }: Props) {
     e.preventDefault();
     setInviteMsg("");
 
-    if (!inviteEmail) return setInviteMsg("⚠️ Vui lòng nhập email bạn bè.");
+    if (!inviteEmail)
+      return setInviteMsg("⚠️ Vui lòng nhập email bạn bè.");
     if (inviteEmail === user.email)
       return setInviteMsg("⚠️ Không thể gửi cho chính mình.");
 
@@ -64,39 +91,6 @@ export default function FriendsClient({ user, supabase }: Props) {
       console.error("Find user error:", findError);
       return setInviteMsg("❌ Lỗi khi tìm người dùng.");
     }
-
-    if (!receiverProfile)
-      return setInviteMsg("❌ Không tìm thấy người dùng này.");
-
-    const { data: existing } = await supabase
-      .from("friends")
-      .select("*")
-      .or(
-        `and(sender_id.eq.${user.id},receiver_id.eq.${receiverProfile.id}),and(sender_id.eq.${receiverProfile.id},receiver_id.eq.${user.id})`
-      )
-      .maybeSingle();
-
-    if (existing)
-      return setInviteMsg("⚠️ Lời mời đã tồn tại hoặc đã là bạn bè.");
-
-    const { error: insertError } = await supabase.from("friends").insert([
-      {
-        sender_id: user.id,
-        receiver_id: receiverProfile.id,
-        sender_email: user.email,
-        receiver_email: inviteEmail,
-        status: "pending",
-      },
-    ]);
-
-    if (insertError) {
-      console.error("Insert error:", insertError);
-      return setInviteMsg("❌ Lỗi khi gửi lời mời.");
-    }
-
-    setInviteMsg("✅ Đã gửi lời mời!");
-    setInviteEmail("");
-    fetchFriends();
   };
 
   // ✅ Chấp nhận / Từ chối lời mời
@@ -139,7 +133,7 @@ export default function FriendsClient({ user, supabase }: Props) {
       ) : (
         pendingReceived.map((p) => (
           <div key={p.id} className="friend-item">
-            <span>{p.sender_email}</span>
+            <span>{profilesMap[p.sender_id]?.email || p.sender_email || p.sender_id}</span>
             <div>
               <button
                 className="accept"
@@ -165,7 +159,7 @@ export default function FriendsClient({ user, supabase }: Props) {
       ) : (
         pendingSent.map((p) => (
           <div key={p.id} className="friend-item">
-            <span>{p.receiver_email}</span>
+            <span>{profilesMap[p.receiver_id]?.email || p.receiver_email || p.receiver_id}</span>
             <div>
               <button onClick={() => deleteFriend(p.id)}>🕓 Hủy</button>
             </div>
@@ -179,11 +173,10 @@ export default function FriendsClient({ user, supabase }: Props) {
         <p>Bạn chưa có bạn bè nào.</p>
       ) : (
         friends.map((f) => {
-          const friendEmail =
-            f.sender_id === user.id ? f.receiver_email : f.sender_email;
+          const friendId = f.sender_id === user.id ? f.receiver_id : f.sender_id;
           return (
             <div key={f.id} className="friend-item">
-              <span>{friendEmail}</span>
+              <span>{profilesMap[friendId]?.email || f.receiver_email || f.sender_email || friendId}</span>
               <div>
                 <button onClick={() => deleteFriend(f.id)}>🗑</button>
               </div>
