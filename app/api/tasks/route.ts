@@ -1,32 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 
 // GET - Lấy tasks (có thể filter theo user_id)
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('user_id')
-    
-    // Sử dụng supabaseAdmin để bypass RLS
-    const client = supabaseAdmin || supabase
-    let query = client.from('tasks').select('*')
-    
-    // Nếu có user_id, filter theo user đó
-    if (userId) {
-      query = query.eq('user_id', userId)
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+
+    // Lấy user từ cookie session
+    const { data: { user } } = await supabase.auth.getUser()
+
+    let query = supabase.from('tasks').select('*').order('created_at', { ascending: false })
+    if (user) {
+      query = query.eq('user_id', user.id)
     } else {
-      // Nếu không có user_id, chỉ lấy tasks có user_id = null (test data)
       query = query.is('user_id', null)
     }
-    
-    const { data, error } = await query.order('created_at', { ascending: false })
+    const { data, error } = await query
 
     if (error) {
       console.error('Error fetching tasks:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    console.log(`Fetched ${data?.length || 0} tasks for user_id: ${userId || 'null'}`)
+    console.log(`Fetched ${data?.length || 0} tasks for user_id: ${user?.id || 'null'}`)
     return NextResponse.json({ data })
   } catch (error) {
     console.error('API Error:', error)
@@ -37,8 +35,12 @@ export async function GET(request: NextRequest) {
 // POST - Tạo task mới
 export async function POST(request: NextRequest) {
   try {
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const { data: { user } } = await supabase.auth.getUser()
+
     const body = await request.json()
-    const { title, description, start_time, end_time, color, type, user_id } = body
+    const { title, description, start_time, end_time, color, type } = body
 
     if (!title || !start_time || !end_time) {
       return NextResponse.json(
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     const task = {
-      user_id: user_id || null,
+      user_id: user ? user.id : null,
       title,
       description: description || '',
       start_time,
@@ -58,9 +60,7 @@ export async function POST(request: NextRequest) {
       completed: false,
     }
 
-    // Sử dụng supabaseAdmin để bypass RLS
-    const client = supabaseAdmin || supabase
-    const { data, error } = await client
+    const { data, error } = await supabase
       .from('tasks')
       .insert([task])
       .select()
