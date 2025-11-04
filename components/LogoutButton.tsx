@@ -47,16 +47,6 @@ export default function LogoutButton({
       onClick={handleLogout}
       disabled={loading}
       className={className}
-      style={{
-        backgroundColor: '#dc3545',
-        color: 'white',
-        border: 'none',
-        padding: '8px 16px',
-        borderRadius: '4px',
-        cursor: loading ? 'not-allowed' : 'pointer',
-        opacity: loading ? 0.6 : 1,
-        ...style
-      }}
     >
       {loading ? 'Đang đăng xuất...' : children}
     </button>

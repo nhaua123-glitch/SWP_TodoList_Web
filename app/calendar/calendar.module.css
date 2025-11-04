@@ -99,7 +99,6 @@
   padding: 25px;
   border-radius: 8px;
   box-shadow: 0 4px 10px rgba(233, 190, 222, 0.3);
-  height: 600px;
   overflow-y: auto;
   background: linear-gradient(
     -45deg, 
@@ -124,223 +123,410 @@
 
 
 
-/* add form */
+/* ========================================= */
+/* ✅ FORM ADD TASK (PASTEL STYLES) */
+/* ========================================= */
+
 .addForm {
-  display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 12px; 
+  padding: 0 0; 
+  height: 100%;
 }
 
+/* 🌷 Tiêu đề Form */
 .addForm h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
   text-align: center;
-  font-size: 20px;
-  font-weight: bold;
-  color: #b4433f;
+  font-size: 1.3rem; 
+  font-weight: 700;
+  color: #e5989b; 
+  margin-top: 0;
+  margin-bottom: 20px; /* Thêm khoảng cách dưới cho đẹp */
+  padding-bottom: 5px;
 }
 
+/* 🌿 Label (Tên trường) */
 .addForm label {
   display: flex;
-  flex-direction: column; /* Đổi thành cột */
-  font-weight: 600;
-  font-size: 14px;
+  margin-bottom: 5px;
+  text-align: left;
+  flex-direction: column;
+  font-size: 0.9rem;
+  color: #6a6e7c; 
+  letter-spacing: 0.3px;
 }
 
-.addForm input,
+.addForm input:not([type="checkbox"]),
 .addForm select {
   width: 100%;
-  margin-top: 6px; /* Chuyển margin lên trên */
-  padding: 4px;
-  border-radius: 5px;
-  border: 1px solid #ae7878;
-  margin-left: 0; /* Xóa margin-left */
+  margin-top: 5px;
+  padding: 8px 10px;
+  border-radius: 8px; /* Bo góc mềm mại hơn */
+  border: 1px solid #d4d8e3; 
+  background-color: #f7f9fc; /* Nền trắng/xám rất nhạt */
   box-sizing: border-box;
-}
-.addForm input[type="checkbox"] {
-  transform: scale(1.2);
-  cursor: pointer;
-  justify-content: flex-start; /* Căn lề trái */
-  width: auto; /* Reset width */
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-
-.save {
-  background: #8adb8d;     
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.cancel {
-  background: #e47b73;     
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
+.addForm input:focus,
+.addForm select:focus {
+  outline: none;
+  /* Viền xanh pastel khi focus */
+  border-color: #a7b8ff; 
+  box-shadow: 0 0 0 3px rgba(167, 184, 255, 0.2); 
+  background-color: #fff;
 }
 
 .buttonGroupadd {
   display: flex;
-  justify-content: center; /* canh ngang giữa */
-  gap: 10px; /* khoảng cách giữa các nút */
-  margin-top: 20px; /* đẩy xuống dưới 1 chút cho đẹp */
+  justify-content: center;
+  gap: 15px; /* Tăng khoảng cách giữa các nút */
+  margin-top: 30px; 
+}
+
+.addForm .save,
+.addForm .cancel {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.save {
+  background: linear-gradient(135deg, #a8e8b2, #75c975); 
+  color: #fff;
+}
+
+.save:hover {
+  background: linear-gradient(135deg, #8ad791, #62b562);
+  transform: translateY(-1px);
+}
+
+.cancel {
+  background: linear-gradient(135deg, #f5a9a9, #e47b73); 
+  color: #fff;
+}
+
+.cancel:hover {
+  background: linear-gradient(135deg, #f18c8c, #d36961);
+  transform: translateY(-1px);
 }
 
 
-/* Modal chỉnh sửa task */
+/* Edit Task */
 .editForm {
-  display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px; 
+  padding: 0 0; 
 }
 
+/* 🌷 Tiêu đề Form */
 .editForm h3 {
-  margin-bottom: 15px;
-  text-align: center; /* canh ngang giữa */
-  font-size: 20px;
-  font-weight: bold;
-  color: #b4433f;
-  margin-top: 0; /* Thêm để căn chỉnh đẹp hơn */
+  text-align: center;
+  font-size: 1.3rem; 
+  font-weight: 700;
+  color: #e5989b; 
+  margin-top: 0;
+  margin-bottom: 20px; /* Thêm khoảng cách dưới cho đẹp */
+  padding-bottom: 5px;
 }
 
+/* 🌿 Label (Tên trường) */
 .editForm label {
   display: flex;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
   text-align: left;
-  flex-direction: column; /* Đổi thành column để đẹp hơn trong sidebar */
-  /* align-items: center; (không cần nữa) */
-  /* justify-content: space-between; (không cần nữa) */
+  flex-direction: column;
+  font-size: 0.9rem;
+  color: #6a6e7c; 
+  letter-spacing: 0.3px;
 }
 
-.editForm input,
+/* 🤍 Input & Select Fields */
+.editForm input:not([type="checkbox"]),
 .editForm select {
   width: 100%;
-  margin-top: 6px;
-  padding: 4px;
-  border-radius: 5px;
-  border: 1px solid #ae7878;
-  margin-left: 0;  /* Reset margin-left */
-  box-sizing: border-box; /* Thêm để input không bị tràn */
+  margin-top: 5px;
+  padding: 8px 10px;
+  border-radius: 8px; /* Bo góc mềm mại hơn */
+  border: 1px solid #d4d8e3; 
+  background-color: #f7f9fc; /* Nền trắng/xám rất nhạt */
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.editForm input:focus,
+.editForm select:focus {
+  outline: none;
+  /* Viền xanh pastel khi focus */
+  border-color: #a7b8ff; 
+  box-shadow: 0 0 0 3px rgba(167, 184, 255, 0.2); 
+  background-color: #fff;
+}
+
+/* 🟩 Checkbox */
+.checkboxLabel {
+  display: flex !important; /* Ghi đè flex-direction: column của .editForm label */
+  flex-direction: row !important; 
+  align-items: flex-start;
+  justify-content: space-between; /* Đẩy chữ và checkbox sang hai bên */
+}
+
+.checkboxWrapper {
+  display: flex;
+  width: 100%; /* Chiếm hết chiều rộng */
+  justify-content: center; /* 🔥 CĂN CHECKBOX VÀO GIỮA */
+  margin-top: 5px;
 }
 
 .editForm input[type="checkbox"] {
-  transform: scale(1.2);
-  cursor: pointer;
-  justify-content: flex-start; /* Căn lề trái */
-  width: auto; /* Reset width */
-}
-
-.editForm button {
-  margin-top: 10px;
-  padding: 6px 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.saveBtn {
-  background: #8adb8d;     
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.deleteBtn {
-  background: #e47b73;     
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.cancelBtn {
-  background: #c5bcbc;    
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
+  transform: scale(1.1); /* Giảm kích thước scale để trông gọn hơn */
 }
 
 .buttonGroup {
   display: flex;
-  justify-content: center; /* canh ngang giữa */
-  gap: 10px; /* khoảng cách giữa các nút */
-  margin-top: 20px; /* đẩy xuống dưới 1 chút cho đẹp */
+  justify-content: center;
+  gap: 15px; /* Tăng khoảng cách giữa các nút */
+  margin-top: 30px; /* Đẩy xuống dưới rõ ràng hơn */
+}
+
+.editForm button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* ✅ Nút Save (Màu xanh lá Pastel) */
+.saveBtn {
+  background: linear-gradient(135deg, #a8e8b2, #75c975); 
+  color: #fff;
+}
+
+.saveBtn:hover {
+  background: linear-gradient(135deg, #8ad791, #62b562);
+  transform: translateY(-1px);
+}
+
+/* 🗑️ Nút Delete (Màu đỏ Pastel) */
+.deleteBtn {
+  /* Màu đỏ pastel không gắt */
+  background: linear-gradient(135deg, #f5a9a9, #e47b73); 
+  color: #fff;
+}
+
+.deleteBtn:hover {
+  background: linear-gradient(135deg, #f18c8c, #d36961);
+  transform: translateY(-1px);
+}
+
+/* ✖️ Nút Cancel (Màu xám/trắng nhạt Pastel) */
+.cancelBtn {
+  /* Màu xám/xanh nhạt pastel */
+  background: #e0eaf3; 
+  color: #5e6c84;
+}
+
+.cancelBtn:hover {
+  background: #cdd8e4;
+  transform: translateY(-1px);
 }
 
 
-/* task details */
+
+/* Task Details */
 .taskDetailsView {
-  padding: 10px;
+  padding: 25px; /* Tăng padding để thoáng hơn */
+  height: 100%;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .taskDetailsView h3 {
   margin-top: 0;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
   text-align: center;
-  font-size: 20px;
-  font-weight: bold;
-  color: #333;
+  font-size: 1.5rem; 
+  font-weight: 700;
+  /* Màu xanh trầm hiện đại (Blue-Gray) */
+  color: #5b758a; 
+  letter-spacing: 0.5px;
 }
 
 .taskDetailsView h4 {
-  font-size: 1.1em;
+  font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #eee;
+  margin-bottom: 20px; 
+  /* Màu xanh lá/xám đậm */
+  color: #3e4a58; 
+  border-bottom: 2px solid #eef1f4; /* Đường kẻ đậm hơn, màu sạch hơn */
   padding-bottom: 10px;
 }
 
 .taskDetailsView p {
-  margin: 5px 0 10px 0;
-  line-height: 1.4;
-  font-size: 14px;
+  margin: 10px 0;
+  line-height: 1.5;
+  font-size: 0.95rem;
+  color: #6a7f8e; 
+  display: flex; 
+  justify-content: space-between;
 }
 
 .taskDetailsView p strong {
-  color: #111;
-  display: block;
-  margin-bottom: 2px;
-  font-size: 13px;
+  color: #3e4a58; 
+  font-weight: 600; 
+  font-size: 0.95rem;
+  display: inline;
+  margin-right: 5px;
 }
 
 .taskDescription {
-  background: #f9f9f9;
-  border-radius: 4px;
-  padding: 8px;
-  min-height: 50px;
+  /* Màu nền trắng sạch */
+  background: #ffffff; 
+  border-radius: 12px; /* Bo góc mạnh hơn, hiện đại hơn */
+  padding: 15px;
+  min-height: 80px;
   word-wrap: break-word;
+  font-style: normal; /* Không dùng italic */
+  font-size: 0.9rem;
+  color: #3e4a58;
+  /* Viền và đổ bóng nhẹ để hộp nổi lên */
+  border: 1px solid #e0e4eb; 
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); 
 }
 
 .viewNote {
-  margin-top: 20px;
+  margin-top: 30px;
   font-style: italic;
-  color: #555;
+  color: #a0aab8; /* Màu xám rất nhạt */
   text-align: center;
-  font-size: 13px;
+  font-size: 0.85rem;
 }
 
 
-/* chuyển đổi giữa 2 chế độ List và Calendar */
-.navbar {
-  position: fixed;
-  right: 20px;
-  top: 20px;
-  gap: 10px;
+/* 1. Sidebar setting */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 280px;
+    background-color: rgb(253, 253, 253);
+    z-index: 1000;
+    box-shadow: 2px 0 5px rgba(150, 46, 46, 0.2);
+    padding: 20px 10px;
+    box-sizing: border-box;
+    padding-top: 60px;
 }
+
+
+/*Tuỳ chỉnh giao diện*/
+.commonHeaderStyle {
+    font-size: 1.2rem;
+    color: #5e6c84;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    border-left: 4px solid #c3dafe;
+    padding-left: 10px;
+    padding-top: 5px; 
+    padding-bottom: 5px; 
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sidebarHeader {
+    composes: commonHeaderStyle; 
+    margin-top: 0px; 
+    margin-bottom: 20px;
+}
+
+/* Dashboard*/
+.dashboardHeader{
+    composes: commonHeaderStyle; 
+    cursor: pointer;
+    text-decoration: none;
+    margin-top: 40px; 
+    margin-bottom: 10px;
+}
+
+/* 2. Nút Toggle (Hamburger) */
+.toggleButton {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1001;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 5px;
+    background: #f4e4f5ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+}
+
+/* Icon Bar (3 gạch ngang) */
+.iconBar {
+    width: 100%;
+    height: 2px;
+    background: white;
+}
+
+/* thanh gạch ngang  */
+.menuItem {
+    padding: 10px 10px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    background-color: transparent;
+}
+
+/* Nút Hành động Dấu Cộng */
+.actionPlus {
+    width: 20px;
+    height: 20px;
+    color: #888;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 6. Container cho Logout (căn chỉnh dưới cùng) */
+.logoutContainer {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: linear-gradient(135deg, #b5c7f7, #d8c7ff);
+    color: #fff;
+    border-radius: 12px;
+    padding: 10px 20px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+/* Wrapper cho các nhãn (label) */
+.labelWrapper {
+    display: flex; 
+    justify-content: space-between; 
+    width: 100%; 
+    align-items: center; 
+    cursor: pointer;
+    color: #898888;
+}
+
+
 
 .switchBtn {
   padding: 6px 16px;
