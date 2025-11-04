@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Tạo client Supabase public (ANON)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export const runtime = "nodejs";
 
 export async function GET(req: Request) {
   try {
@@ -16,16 +12,35 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing invite ID" }, { status: 400 });
     }
 
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !serviceKey) {
+      return NextResponse.json(
+        { error: "Server is missing Supabase configuration" },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(url, serviceKey);
+
     // Cập nhật trạng thái "accepted" cho lời mời có id tương ứng
-    const { error } = await supabase
+    const { error, data } = await supabase
       .from("friends")
-      .update({ status: "accepted", updated_at: new Date().toISOString() })
-      .eq("id", id);
+      .update({ status: "accepted" })
+      .eq("id", id)
+      .select("id");
+
+    if (!error && (!data || data.length === 0)) {
+      return NextResponse.json(
+        { error: "Invite not found" },
+        { status: 404 }
+      );
+    }
 
     if (error) {
       console.error("Accept error:", error);
       return NextResponse.json(
-        { error: "Failed to accept invite" },
+        { error: error.message || "Failed to accept invite" },
         { status: 500 }
       );
     }
