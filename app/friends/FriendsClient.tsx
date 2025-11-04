@@ -1,19 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
 import "./friends.css";
+
 
 interface Props {
   user: any;
+  supabase: any;
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-export default function FriendsClient({ user }: Props) {
+export default function FriendsClient({ user, supabase }: Props) {
   const [friends, setFriends] = useState<any[]>([]);
   const [pendingReceived, setPendingReceived] = useState<any[]>([]);
   const [pendingSent, setPendingSent] = useState<any[]>([]);
@@ -21,8 +17,10 @@ export default function FriendsClient({ user }: Props) {
   const [inviteMsg, setInviteMsg] = useState("");
 
   useEffect(() => {
-    if (user?.id) fetchFriends();
-  }, [user]);
+    if (user?.id) {
+      fetchFriends();
+    }
+  }, [user, supabase]); // Thêm supabase vào dependency array cho an toàn
 
   // ✅ Lấy toàn bộ bạn bè & lời mời
   const fetchFriends = async () => {
@@ -38,12 +36,12 @@ export default function FriendsClient({ user }: Props) {
 
     if (!data) return;
 
-    setFriends(data.filter((f) => f.status === "accepted"));
+    setFriends(data.filter((f: { status: string; }) => f.status === "accepted"));
     setPendingReceived(
-      data.filter((f) => f.status === "pending" && f.receiver_id === user.id)
+      data.filter((f: { status: string; receiver_id: any; }) => f.status === "pending" && f.receiver_id === user.id)
     );
     setPendingSent(
-      data.filter((f) => f.status === "pending" && f.sender_id === user.id)
+      data.filter((f: { status: string; sender_id: any; }) => f.status === "pending" && f.sender_id === user.id)
     );
   };
 
@@ -59,7 +57,7 @@ export default function FriendsClient({ user }: Props) {
     const { data: receiverProfile, error: findError } = await supabase
       .from("profiles")
       .select("id, email")
-      .eq("email", inviteEmail)
+      .ilike("email", inviteEmail.trim())
       .maybeSingle();
 
     if (findError) {
@@ -116,6 +114,8 @@ export default function FriendsClient({ user }: Props) {
     fetchFriends();
   };
 
+  // 💡 5. LỖI CÚ PHÁP LÀ Ở ĐÂY:
+  // Lệnh "return" phải nằm BÊN TRONG hàm "FriendsClient"
   return (
     <div className="friends-container">
       <h2>👥 Bạn bè của tôi</h2>
@@ -141,9 +141,18 @@ export default function FriendsClient({ user }: Props) {
           <div key={p.id} className="friend-item">
             <span>{p.sender_email}</span>
             <div>
-              <button className="accept" onClick={() => updateStatus(p.id, "accepted")}>✅</button>
-<button className="reject" onClick={() => updateStatus(p.id, "rejected")}>❌</button>
-
+              <button
+                className="accept"
+                onClick={() => updateStatus(p.id, "accepted")}
+              >
+                ✅
+              </button>
+              <button
+                className="reject"
+                onClick={() => updateStatus(p.id, "rejected")}
+              >
+                ❌
+              </button>
             </div>
           </div>
         ))
@@ -184,4 +193,4 @@ export default function FriendsClient({ user }: Props) {
       )}
     </div>
   );
-}
+} 

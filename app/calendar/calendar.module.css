@@ -62,7 +62,7 @@
 }
 
 .calendarContainer :global(.rbc-toolbar .rbc-active) {
-  background: #9be49e !important;
+  background: #b2eab4 !important;
   color: #fff !important;
 }
 
@@ -92,47 +92,24 @@
   margin: 0 auto;
 }
 
-/* Sidebar edit task mới */
+/* Sidebar add/edit task */
 .editSidebar {
-  width: 300px; /* Chiều rộng cố định cho sidebar */
-  flex-shrink: 0; /* Không cho phép sidebar co lại */
-  
-  /* Lấy style từ .modal cũ của bạn */
-  background: rgb(201, 236, 209);
+  width: 300px;
+  flex-shrink: 0;
   padding: 25px;
   border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(38, 199, 17, 0.3);
-  
-  height: 600px; /* Đồng bộ chiều cao với lịch (style={{ height: 600 }}) */
-  overflow-y: auto; /* Cho phép cuộn nếu form quá dài */
+  box-shadow: 0 4px 10px rgba(233, 190, 222, 0.3);
+  height: 600px;
+  overflow-y: auto;
+  background: linear-gradient(
+    -45deg, 
+    #EEAECA, /* Màu 1 (Màu cũ của bạn) */
+    #94bbe9, /* Màu 2 (Màu cũ của bạn) */
+    #b8f1eb, /* Màu 3 (Màu mới) */
+    #f2dcf4  /* Màu 4 (Màu mới) */
+  );
+  background-size: 400% 400%;
 }
-
-/* CSS cho placeholder trong sidebar */
-.sidebarPlaceholder {
-  padding: 20px;
-  text-align: center;
-  color: #555;
-}
-.sidebarPlaceholder h4 {
-  margin-top: 40px;
-  font-size: 1.2em;
-  font-weight: 600;
-  color: #333;
-}
-.sidebarPlaceholder p {
-  font-size: 0.9em;
-  color: #777;
-  line-height: 1.5;
-}
-
-/* Form bên trong sidebar */
-.editForm {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-
 
 /* Nút chọn màu nền / ảnh nền */
 .bgWidget {
@@ -147,7 +124,7 @@
 
 
 
-
+/* add form */
 .addForm {
   display: flex;
   flex-direction: column;
@@ -180,7 +157,12 @@
   margin-left: 0; /* Xóa margin-left */
   box-sizing: border-box;
 }
-
+.addForm input[type="checkbox"] {
+  transform: scale(1.2);
+  cursor: pointer;
+  justify-content: flex-start; /* Căn lề trái */
+  width: auto; /* Reset width */
+}
 
 
 .save {
@@ -211,11 +193,12 @@
 }
 
 
-
 /* Modal chỉnh sửa task */
-/* Form chỉnh sửa task (TRONG SIDEBAR) */
-
-/* Xóa .modal và thay bằng .editForm đã thêm ở trên */
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
 .editForm h3 {
   margin-bottom: 15px;
@@ -299,6 +282,57 @@
 }
 
 
+/* task details */
+.taskDetailsView {
+  padding: 10px;
+}
+
+.taskDetailsView h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+}
+
+.taskDetailsView h4 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.taskDetailsView p {
+  margin: 5px 0 10px 0;
+  line-height: 1.4;
+  font-size: 14px;
+}
+
+.taskDetailsView p strong {
+  color: #111;
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+
+.taskDescription {
+  background: #f9f9f9;
+  border-radius: 4px;
+  padding: 8px;
+  min-height: 50px;
+  word-wrap: break-word;
+}
+
+.viewNote {
+  margin-top: 20px;
+  font-style: italic;
+  color: #555;
+  text-align: center;
+  font-size: 13px;
+}
+
 
 /* chuyển đổi giữa 2 chế độ List và Calendar */
 .navbar {
@@ -323,48 +357,17 @@
   background: #547793;
 }
 
+/* Hiệu ứng nền động cho sidebar */
+@keyframes slide {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
 
 
-.taskDetailsView {
-  padding: 10px;
-}
-.taskDetailsView h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  text-align: center;
-  font-size: 20px;
-  font-weight: bold;
-  color: #333;
-}
-.taskDetailsView h4 {
-  font-size: 1.1em;
-  font-weight: 600;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
-}
-.taskDetailsView p {
-  margin: 5px 0 10px 0;
-  line-height: 1.4;
-  font-size: 14px;
-}
-.taskDetailsView p strong {
-  color: #111;
-  display: block;
-  margin-bottom: 2px;
-  font-size: 13px;
-}
-.taskDescription {
-  background: #f9f9f9;
-  border-radius: 4px;
-  padding: 8px;
-  min-height: 50px;
-  word-wrap: break-word;
-}
-.viewNote {
-  margin-top: 20px;
-  font-style: italic;
-  color: #555;
-  text-align: center;
-  font-size: 13px;
-}

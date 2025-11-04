@@ -15,7 +15,6 @@ import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 
-
 // ===================================
 
 const locales = { "en-US": enUS };
@@ -44,46 +43,6 @@ export default function Home() {
   };
 
 
-
-  // Khi di chuột ra khỏi task HOẶC sidebar
-  const handleMouseLeave = () => {
-    // Đặt timer để ẩn sidebar sau 300ms (đủ thời gian di chuyển chuột)
-    timerRef.current = setTimeout(() => {
-      setSelectedEvent(null);
-    }, 300);
-  };
-
-  // Hàm gửi lời mời kết bạn
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setInviteMsg("");
-    if (!inviteEmail) {
-      setInviteMsg("Vui lòng nhập email bạn bè.");
-      return;
-    }
-    // Lấy user hiện tại từ localStorage
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (!user?.id) {
-      setInviteMsg("Không tìm thấy thông tin người dùng.");
-      return;
-    }
-
-    // Gửi lời mời lên Supabase
-    const { error } = await supabase.from("friends").insert([
-      {
-        user_id: user.id,
-        friend_email: inviteEmail,
-        status: "pending",
-      },
-    ]);
-    if (error) {
-      setInviteMsg("Gửi lời mời thất bại: " + error.message);
-    } else {
-      setInviteMsg("Đã gửi lời mời kết bạn!");
-      setInviteEmail("");
-    }
-  };
-
   // 💡 1. THÊM STATE ĐỂ QUẢN LÝ NGÀY THÁNG HIỆN TẠI (CHO NÚT BACK/NEXT)
   const [date, setDate] = useState(new Date());
 
@@ -100,7 +59,7 @@ export default function Home() {
   });
 
 
-
+ // vào user, truy cập data
   useEffect(() => {
     fetchTasks();
   }, []);
@@ -144,38 +103,79 @@ export default function Home() {
       color: newTask.color,
       type: newTask.type,
       completed: false,
+    };      
+
+      const { data, error } = await supabase.from("tasks").insert([task]).select();
+      
+      if (error) {
+        console.error("Supabase insert error:", error); // In lỗi ra để xem rõ hơn
+      } else {
+        const added = {
+          ...data[0],
+          start: new Date(data[0].start_time),
+          end: new Date(data[0].end_time),
+        };
+        setEvents([...events, added]);
+        setNewTask({ title: "", start: "", end: "", color: "#3174ad", type: "work", description: "" });
+      }
     };
 
-    const { data, error } = await supabase.from("tasks").insert([task]).select();
-    
+    const handleSelectSlot = (slotInfo: any) => {
+      setSelectedEvent(null); // Chuyển sidebar về chế độ ADD
+      setHoveredEvent(null);  // Xóa mọi thông tin hover
+
+      setNewTask({
+        title: "",
+        description: "",
+        start: slotInfo.start.toISOString().slice(0, 16),
+        end: slotInfo.end.toISOString().slice(0, 16),
+        color: "#6a879fff",
+        type: "work",
+      });
+
+    };
+
+    // Khi di chuột ra khỏi task HOẶC sidebar
+    const handleMouseLeave = () => {
+      // Đặt timer để ẩn sidebar sau 300ms (đủ thời gian di chuyển chuột)
+      timerRef.current = setTimeout(() => {
+        setSelectedEvent(null);
+      }, 300);
+    };
+
+   // Hàm gửi lời mời kết bạn
+    const handleInvite = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setInviteMsg("");
+      if (!inviteEmail) {
+        setInviteMsg("Vui lòng nhập email bạn bè.");
+        return;
+      }
+
+    // 1. LẤY USER ĐÚNG CÁCH
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      setInviteMsg("Lỗi: Không tìm thấy người dùng. Bạn đã đăng nhập chưa?");
+      return;
+    }
+
+    // 2. GỬI LỜI MỜI VỚI USER ID CHÍNH XÁC
+    const { error } = await supabase.from("friends").insert([
+      {
+        user_id: user.id, // 👈 Dùng user.id an toàn từ Supabase
+        friend_email: inviteEmail,
+        status: "pending",
+      },
+    ]);
+
     if (error) {
-      console.error("Supabase insert error:", error); // In lỗi ra để xem rõ hơn
+      setInviteMsg("Gửi lời mời thất bại: " + error.message);
     } else {
-      const added = {
-        ...data[0],
-        start: new Date(data[0].start_time),
-        end: new Date(data[0].end_time),
-      };
-      setEvents([...events, added]);
-      setNewTask({ title: "", start: "", end: "", color: "#3174ad", type: "work", description: "" });
+      setInviteMsg("Đã gửi lời mời kết bạn!");
+      setInviteEmail("");
     }
   };
-
-  const handleSelectSlot = (slotInfo: any) => {
-    setSelectedEvent(null); // Chuyển sidebar về chế độ ADD
-    setHoveredEvent(null);  // Xóa mọi thông tin hover
-
-    setNewTask({
-      title: "",
-      description: "",
-      start: slotInfo.start.toISOString().slice(0, 16),
-      end: slotInfo.end.toISOString().slice(0, 16),
-      color: "#6a879fff",
-      type: "work",
-    });
-
-  };
-
 
   const handleEventDrop = async ({ event, start, end, isAllDay }: any) => {
     const updatedEvents = events.map((existingEvent) =>
@@ -248,26 +248,6 @@ export default function Home() {
     );
   }
 
-  // Tạm thời disable authentication check để test
-  /*
-  if (!isAuthenticated) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        fontSize: '18px'
-      }}>
-        Chuyển hướng đến trang đăng nhập...
-      </div>
-    );
-  }
-  */
-
-  
-
-
   return (
     <div className={styles.page}>
       <PointsBar points={points} />
@@ -275,21 +255,6 @@ export default function Home() {
         <Link href="/dashboard">
           <button className={styles.switchBtn}>🏠 Dashboard</button>
         </Link>
-        <Link href="/list">
-          <button className={styles.switchBtn}>📋 List</button>
-        </Link>
-        <LogoutButton
-          style={{
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            marginLeft: '10px'
-          }}
-        >
-          🚪 Logout
-        </LogoutButton>
       </div>
 
 
@@ -298,7 +263,7 @@ export default function Home() {
         <Link href="/friends">
           <button
             style={{
-              background: "#2563eb",
+              background: "linear-gradient(-45deg, #EEAECA, #94bbe9, #b8f1eb, #f2dcf4)",
               color: "#fff",
               border: "none",
               borderRadius: "6px",
@@ -393,40 +358,189 @@ export default function Home() {
 // CÁC COMPONENT PHỤ
 // -----------------------------------------------------------------------------
 
-function BackgroundCustomizer() {
-  const [bgColor, setBgColor] = useState("#ffffff");
+  // Custom bg và các cài đặt khác
+  function BackgroundCustomizer() {
+    const [bgColor, setBgColor] = useState("#ffffff");
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    document.body.style.backgroundColor = bgColor;
-  }, [bgColor]);
+    useEffect(() => {
+      if (!document.body.style.backgroundImage || document.body.style.backgroundImage === 'none') {
+          document.body.style.backgroundColor = bgColor;
+      }
+    }, [bgColor]);
 
-  const handleColorChange = (e: any) => setBgColor(e.target.value);
-
-  const handleImageUpload = (e: any) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      document.body.style.backgroundImage = `url(${reader.result})`;
-      document.body.style.backgroundSize = "cover";
-      document.body.style.backgroundPosition = "center";
+    const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setBgColor(e.target.value);
+      document.body.style.backgroundImage = 'none';
     };
-    reader.readAsDataURL(file);
-  };
 
-  return (
-    <div className={styles.bgWidget}>
-      <label title="Chọn màu nền">
-        🎨
-        <input type="color" value={bgColor} onChange={handleColorChange} style={{ display: "none" }} />
-      </label>
-      <label title="Upload ảnh nền">
-        🖼
-        <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
-      </label>
-    </div>
-  );
-}
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        document.body.style.backgroundImage = `url(${reader.result})`;
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundPosition = "center";
+        document.body.style.backgroundColor = "";
+      };
+      reader.readAsDataURL(file);
+    };
+
+    const toggleSidebar = () => {
+      setIsSidebarOpen(prev => !prev);
+    };
+
+    // CSS cho icon 3 gạch (Hamburger)
+    const HamburgerIcon = (
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'space-around', 
+          width: '50%', // Chiều rộng của icon bên trong nút
+          height: '50%', // Chiều cao của icon bên trong nút
+          margin: 'auto'
+        }}
+      >
+        <div style={{ width: '100%', height: '2px', background: 'white' }}></div>
+        <div style={{ width: '100%', height: '2px', background: 'white' }}></div>
+        <div style={{ width: '100%', height: '2px', background: 'white' }}></div>
+      </div>
+    );
+
+    return (
+      <>
+        {/* 1. Nút Menu/Toggle */}
+        <button 
+          onClick={toggleSidebar} 
+          title="Mở Tùy chỉnh nền"
+          style={{ 
+            // Vị trí cố định (như cũ)
+            position: 'fixed', 
+            top: '15px', 
+            left: '15px', 
+            zIndex: 1001, 
+            cursor: 'pointer',
+            width: '30px',
+            height: '30px',
+            padding: '0',
+            borderRadius: '5px', 
+            background: '#f4e4f5ff', // Màu hồng nhạt
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {/* Nút bấm không hiển thị text, mà hiển thị icon */}
+          {HamburgerIcon} 
+        </button>
+
+        {/* 2. Sidebar Menu */}
+        <div 
+          className="bg-customizer-sidebar"
+          style={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            height: '100%',
+            width: '280px', 
+            backgroundColor: '#fff8f8ff', 
+            zIndex: 1000, 
+            boxShadow: '2px 0 5px rgba(150, 46, 46, 0.2)',
+            padding: '20px 10px',
+            transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.3s ease-in-out',
+            boxSizing: 'border-box',
+            paddingTop: '60px'
+          }}
+        >
+          {/* ... (Nội dung sidebar) ... */}
+          <h3 style={{ margin: '0 0 20px 0', paddingLeft: '10px' }}>Tùy Chỉnh Giao Diện</h3>
+          <div style={{ padding: '10px 10px', display: 'flex', alignItems: 'center', borderBottom: '1px solid #eee' }}>
+              <label title="Chọn màu nền" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '16px' }}>Chọn Màu Nền</span>
+                  <input 
+                    type="color" 
+                    value={bgColor} 
+                    onChange={handleColorChange} 
+                    // Ẩn hoàn toàn input color
+                    style={{ display: 'none' }} 
+                  />
+                  <div 
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      color: '#888',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    title="Mở bảng chọn màu"
+                  >
+                    +
+                  </div>
+              </label>
+          </div>
+          <div style={{ padding: '10px 10px', display: 'flex', alignItems: 'center', borderBottom: '1px solid #eee' }}>
+              <label title="Upload ảnh nền" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '16px' }}>Upload Ảnh Nền</span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageUpload} 
+                    style={{ display: "none" }}
+                  />
+                  <div 
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    color: '#888', 
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="Tải lên"
+                >
+                  +
+                </div>
+              </label>
+          </div>
+          <div 
+              // cố định ở góc dưới của Sidebar
+              style={{ 
+                position: 'absolute',
+                bottom: '10px', // Khoảng cách từ đáy
+                left: '10px',   // Khoảng cách từ lề trái
+                right: '10px',  // Khoảng cách từ lề phải (để chiếm hết chiều ngang)
+                zIndex: 10      // Đảm bảo nút nằm trên các nội dung khác nếu có
+              }}
+            >
+              <LogoutButton
+                style={{
+                  backgroundColor: '#dc3545', 
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  width: '100%', // Chiếm hết chiều ngang
+                  fontWeight: 'bold',
+                }}
+              >
+                🚪 Đăng Xuất
+              </LogoutButton>
+          </div>
+          </div>
+
+      </>
+    );
+  }
 
 function FriendInviteWidget({ supabase }: { supabase: any }) { 
   const [inviteEmail, setInviteEmail] = useState("");
