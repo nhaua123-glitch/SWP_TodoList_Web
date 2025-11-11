@@ -119,16 +119,9 @@ export default function SignupPage() {
 
         {/* Panel bên phải */}
         <div className={styles.rightPanel}>
+          
           <img
-            src="https://lacemade.com/cdn/shop/files/logo_55354c7e-2cf6-4a7c-bcf3-f83d1c8ac0d2_230x.png?v=1747985772"
-            alt="logo"
-            style={{ maxWidth: "220px", marginBottom: "20px" }}
-          />
-          <p>
-            A cozy corner for your dreams and duties.
-          </p>
-          <img
-            src="https://lacemade.com/cdn/shop/files/2_e003ffac-8ca6-454a-9f48-e5435c086ad6_1800x.jpg?v=1747726087"
+            src="https://cdn.dribbble.com/users/5325964/screenshots/11432898/media/f6a4fcbd45cb1cd36e1b2fb088a3eabc.png?compress=1&resize=840x630&vertical=top"
             alt="Shopping illustration"
             style={{ marginTop: "30px" }}
           />
