@@ -76,20 +76,38 @@ export default function FriendsClient({ user, supabase }: Props) {
     e.preventDefault();
     setInviteMsg("");
 
-    if (!inviteEmail)
+    const trimmedEmail = inviteEmail.trim();
+
+    if (!trimmedEmail)
       return setInviteMsg("⚠️ Vui lòng nhập email bạn bè.");
-    if (inviteEmail === user.email)
+    if (trimmedEmail.toLowerCase() === (user.email || "").toLowerCase())
       return setInviteMsg("⚠️ Không thể gửi cho chính mình.");
 
-    const { data: receiverProfile, error: findError } = await supabase
-      .from("profiles")
-      .select("id, email")
-      .ilike("email", inviteEmail.trim())
-      .maybeSingle();
+    try {
+      setInviteMsg("⏳ Đang gửi lời mời...");
 
-    if (findError) {
-      console.error("Find user error:", findError);
-      return setInviteMsg("❌ Lỗi khi tìm người dùng.");
+      const res = await fetch("/api/private/friends/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toEmail: trimmedEmail }),
+      });
+
+      const payload = await res
+        .json()
+        .catch(() => ({ error: "Không đọc được phản hồi từ server." }));
+
+      if (!res.ok || payload?.error) {
+        console.error("Invite send error:", payload?.error);
+        setInviteMsg(`❌ ${payload?.error || "Gửi lời mời thất bại."}`);
+        return;
+      }
+
+      setInviteMsg("✅ Lời mời đã được gửi thành công!");
+      setInviteEmail("");
+      fetchFriends();
+    } catch (err) {
+      console.error("Invite send exception:", err);
+      setInviteMsg("❌ Có lỗi khi gửi lời mời. Vui lòng thử lại.");
     }
   };
 
