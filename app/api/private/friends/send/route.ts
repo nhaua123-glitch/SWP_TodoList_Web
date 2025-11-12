@@ -4,6 +4,12 @@ import { google } from "googleapis";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
+// Ensure this route runs on Node.js runtime (not Edge) for googleapis/Buffer compatibility
+export const runtime = "nodejs";
+// Avoid static optimization and caching for this dynamic API
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // Khởi tạo Supabase public (only for OAuth tokens table if needed). DB writes will use auth client below.
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
