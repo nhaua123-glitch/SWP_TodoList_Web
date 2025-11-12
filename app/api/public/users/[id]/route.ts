@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
 import { cookies } from "next/headers";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 
@@ -10,7 +9,13 @@ export async function GET(
   const userId = params.id;
   if (!userId) return NextResponse.json({ error: "Missing user ID" }, { status: 400 });
 
-  const { data, error } = await supabase
+  // Dùng auth client để RLS cho phép chủ sở hữu xem profile của chính mình
+  const supabaseAuth = createRouteHandlerClient({ cookies });
+
+  const { data: authUserData } = await supabaseAuth.auth.getUser();
+  const requester = authUserData?.user || null;
+
+  const { data, error } = await supabaseAuth
     .from("profiles")
     .select("id, username, bio, avatar_url, mode")
     .eq("id", userId)
@@ -22,12 +27,7 @@ export async function GET(
 
   // Kiểm tra auth để cho chủ sở hữu xem private
   if (data.mode === "private") {
-    const supabaseAuth = createRouteHandlerClient({ cookies });
-    const {
-      data: { user },
-    } = await supabaseAuth.auth.getUser();
-
-    if (!user || user.id !== userId) {
+    if (!requester || requester.id !== userId) {
       return NextResponse.json({ error: "Profile is private" }, { status: 403 });
     }
   }

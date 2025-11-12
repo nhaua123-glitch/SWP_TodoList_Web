@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   try {
     const supabase = createRouteHandlerClient({ cookies });
     const body = await req.json();
-    const { username, bio, mode } = body;
+    const { username, bio, mode, avatar_url } = body;
 
     const {
       data: { user },
@@ -24,18 +24,22 @@ export async function POST(req: Request) {
     if (mode && !["public", "private"].includes(mode)) {
       return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
     }
+    if (avatar_url && (typeof avatar_url !== "string" || avatar_url.length > 512)) {
+      return NextResponse.json({ error: "avatar_url không hợp lệ" }, { status: 400 });
+    }
 
     const updates = {
       ...(username && { username }),
       ...(bio && { bio }),
       ...(mode && { mode }),
+      ...(avatar_url && { avatar_url }),
       updated_at: new Date().toISOString(),
     };
 
+    // Upsert: tạo mới nếu chưa có, cập nhật nếu đã tồn tại
     const { data, error } = await supabase
       .from("profiles")
-      .update(updates)
-      .eq("id", user.id)
+      .upsert({ id: user.id, ...updates })
       .select("*")
       .single();
 

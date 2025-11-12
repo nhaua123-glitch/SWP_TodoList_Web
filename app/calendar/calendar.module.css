@@ -445,6 +445,7 @@
     composes: commonHeaderStyle; 
     margin-top: 0px; 
     margin-bottom: 20px;
+    font-size: 1.25rem;
 }
 
 /* Dashboard*/
@@ -454,6 +455,7 @@
     text-decoration: none;
     margin-top: 40px; 
     margin-bottom: 10px;
+    font-size: 1.15rem;
 }
 
 /* 2. Nút Toggle (Hamburger) */
@@ -483,7 +485,7 @@
 
 /* thanh gạch ngang  */
 .menuItem {
-    padding: 10px 10px;
+    padding: 14px 14px;
     display: flex;
     align-items: center;
     border-bottom: 1px solid #eee;
@@ -493,10 +495,10 @@
 
 /* Nút Hành động Dấu Cộng */
 .actionPlus {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     color: #888;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -524,6 +526,7 @@
     align-items: center; 
     cursor: pointer;
     color: #898888;
+    font-size: 1rem;
 }
 
 

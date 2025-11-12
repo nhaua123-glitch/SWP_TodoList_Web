@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f472b6"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="url(#bg)"/>
+  <!-- Cute bear -->
+  <circle cx="64" cy="74" r="30" fill="#fff" opacity="0.98"/>
+  <circle cx="50" cy="58" r="9" fill="#fff" opacity="0.98"/>
+  <circle cx="78" cy="58" r="9" fill="#fff" opacity="0.98"/>
+  <!-- smiling eyes -->
+  <path d="M54 72 q4 6 8 0" stroke="#1f2937" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M66 72 q4 6 8 0" stroke="#1f2937" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <circle cx="64" cy="80" r="5" fill="#1f2937"/>
+</svg>

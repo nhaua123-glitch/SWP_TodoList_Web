@@ -34,6 +34,8 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [friendsList, setFriendsList] = useState<any[]>([]);
+  const [isOnline, setIsOnline] = useState(false);
+  const [myProfile, setMyProfile] = useState<any>(null);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearTimer = () => {
@@ -66,10 +68,76 @@ export default function Home() {
     const getCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user); // Cập nhật state currentUser
+      if (user?.id) {
+        try {
+          const res = await fetch(`/api/public/users/${user.id}`);
+          if (res.ok) {
+            const d = await res.json();
+            setMyProfile(d);
+          }
+          // check online status once
+          const st = await fetch(`/api/public/users/status`);
+          if (st.ok) {
+            const json = await st.json();
+            if (json?.online && Array.isArray(json.online)) {
+              setIsOnline(json.online.some((u: any) => u.user_id === user.id));
+            }
+          }
+        } catch {}
+      }
     };
     getCurrentUser(); 
     fetchTasks();
     fetchFriends(); 
+  }, []);
+
+  // Heartbeat to keep online status while this page is open
+  useEffect(() => {
+    let hb: any = null;
+    let active = true;
+    async function pingOnline() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        await supabase
+          .from('user_status')
+          .upsert({ user_id: user.id, status: 'online', last_seen: new Date().toISOString() }, { onConflict: 'user_id' });
+      } catch (e) {
+        // ignore
+      }
+    }
+    async function setOfflineOnce() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        await supabase
+          .from('user_status')
+          .upsert({ user_id: user.id, status: 'offline', last_seen: new Date().toISOString() }, { onConflict: 'user_id' });
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // start when mounted
+    pingOnline();
+    hb = setInterval(() => {
+      if (active && document.visibilityState === 'visible') pingOnline();
+    }, 20000);
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') setOfflineOnce();
+      else pingOnline();
+    };
+    const onBeforeUnload = () => { setOfflineOnce(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('beforeunload', onBeforeUnload);
+
+    return () => {
+      active = false;
+      if (hb) clearInterval(hb);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
   }, []);
 
   console.log("Dữ liệu friendsList trong Form:", friendsList);
@@ -403,6 +471,75 @@ const handleAddTask = async () => {
 
       <BackgroundCustomizer />
       <h2 className={styles.title}>My Task Calendar</h2>
+      {myProfile && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              top: 48,
+              right: 88,
+              background: '#f7ecfb',
+              border: '1px solid #e3c9ef',
+              color: '#5b3c6a',
+              padding: '6px 12px',
+              borderRadius: 999,
+              fontSize: 14,
+              fontWeight: 600,
+              maxWidth: 220,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+            className="greetPill"
+            title={`Xin chào, ${myProfile.username || 'bạn'}`}
+          >
+            👋 Xin chào, {myProfile.username || 'bạn'} 🌸
+          </div>
+          <Link href="/profile">
+            <div style={{ position: 'fixed', top: 20, right: 32 }}>
+              <img
+                src={myProfile.avatar_url || "/default-avatar.png"}
+                alt="My avatar"
+                width={56}
+                height={56}
+                style={{
+                  borderRadius: '50%',
+                  border: '2px solid #e3c9ef',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  cursor: 'pointer'
+                }}
+              />
+              <span
+                title={isOnline ? 'Online' : 'Offline'}
+                style={{
+                  position: 'absolute',
+                  right: -2,
+                  bottom: -2,
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  border: '2px solid #e3c9ef',
+                  background: isOnline ? '#34d399' : '#9ca3af',
+                  boxShadow: '0 0 0 2px rgba(255,255,255,0.6)'
+                }}
+              />
+            </div>
+          </Link>
+        </>
+      )}
+
+      <style jsx global>{`
+        @keyframes pillBlink {
+          0% { box-shadow: 0 0 0 0 rgba(227,201,239,0.6); }
+          100% { box-shadow: 0 0 0 8px rgba(227,201,239,0); }
+        }
+        .greetPill {
+          animation: pillBlink 1.6s ease-in-out infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .greetPill { animation: none; }
+        }
+      `}</style>
 
 
       {/* ========================================= */}
@@ -613,6 +750,12 @@ const handleAddTask = async () => {
               className={styles.dashboardHeader}
           >
             <span className={styles.dashboardLink}>Dashboard</span>
+          </Link>
+          <Link 
+              href="/profile" 
+              className={styles.dashboardHeader}
+          >
+            <span className={styles.dashboardLink}>Profile</span>
           </Link>
           <div className={styles.logoutContainer}> 
               <LogoutButton

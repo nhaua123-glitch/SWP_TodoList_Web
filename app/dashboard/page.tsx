@@ -82,6 +82,7 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', gap: 8 }}>
           <Link href="/calendar"><button style={buttonStyle}>📅 Calendar</button></Link>
           <Link href="/list"><button style={buttonStyle}>📋 List</button></Link>
+          <Link href="/profile"><button style={buttonStyle}>👤 Profile</button></Link>
         </div>
         <LogoutButton 
           style={{ 
@@ -148,8 +149,9 @@ const buttonStyle: React.CSSProperties = {
   backgroundColor: '#f0f0f0',
   color: '#333',
   border: '1px solid #ddd',
-  padding: '8px 16px',
-  borderRadius: '4px',
+  padding: '12px 20px',
+  borderRadius: '8px',
+  fontSize: 15,
   cursor: 'pointer'
 };
 

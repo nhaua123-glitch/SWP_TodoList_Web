@@ -82,6 +82,9 @@ export default function ListPage() {
             <Link href="/calendar">
                 <button className={styles.switchBtn}>📅 Calendar</button>
             </Link>
+            <Link href="/profile">
+                <button className={styles.switchBtn}>👤 Profile</button>
+            </Link>
             <LogoutButton 
               style={{ 
                 backgroundColor: '#dc3545', 
