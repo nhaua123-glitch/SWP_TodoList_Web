@@ -12,7 +12,7 @@ import styles from "./calendar.module.css";
 import WidgetTimer from "../components/widgettimer";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@supabase/ssr'
 
 
 // ===================================
@@ -25,7 +25,6 @@ const DragAndDropCalendar = withDragAndDrop(Calendar);
 
 export default function Home() {
   const router = useRouter();
-  const supabase = createClientComponentClient();
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<any>(null); // Task ĐANG BỊ CLICK để edit
   const [hoveredEvent, setHoveredEvent] = useState<any>(null);   // Task ĐANG BỊ RÊ CHUỘT qua
@@ -34,6 +33,11 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [friendsList, setFriendsList] = useState<any[]>([]);
+  const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearTimer = () => {
@@ -236,9 +240,9 @@ const handleAddTask = async () => {
         user_id: friendId,
         role: "EDITOR",
       }));
-      promises.push(supabase.from("task_collaborators").insert(collaboratorsPayload));
+      // Ensure we push a real Promise<any> (Supabase returns PromiseLike in some typings)
+      promises.push(Promise.resolve(supabase.from("task_collaborators").insert(collaboratorsPayload).select() as any) as Promise<any>);
     }
-
     if (newTask.subtasks?.length > 0) {
       const subtasksPayload = newTask.subtasks.map((st: any) => ({
         task_id: newTaskId,
@@ -246,7 +250,8 @@ const handleAddTask = async () => {
         assignee_id: st.assignee_id || user.id,
         is_completed: false,
       }));
-      promises.push(supabase.from("subtasks").insert(subtasksPayload));
+      // Ensure we push a real Promise<any> (Supabase returns PromiseLike in some typings)
+      promises.push(Promise.resolve(supabase.from("subtasks").insert(subtasksPayload).select() as any) as Promise<any>);
     }
 
     // 🔹 Chạy tất cả insert phụ song song
@@ -878,6 +883,7 @@ function PointsBar({ points }: { points: number }) {
 
 
 interface Task {
+  collaborators: never[];
   id: number;
   title: string;
   description?: string;

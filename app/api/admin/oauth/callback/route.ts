@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function GET(req: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -21,8 +21,24 @@ export async function GET(req: NextRequest) {
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
   try {
     const { tokens } = await oauth2Client.getToken(code);
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const cookieStore = cookies()
+const supabase = createServerClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    cookies: {
+  get(name: string) {
+    return cookieStore.get(name)?.value
+  },
+  set(name: string, value: string, options: CookieOptions) { // <-- Đã sửa
+    cookieStore.set({ name, value, ...options })
+  },
+  remove(name: string, options: CookieOptions) { // <-- Đã sửa
+    cookieStore.set({ name, value: '', ...options })
+  },
+},
+  }
+)
 
     // Lưu/ghi đè token
     const { error } = await supabase
