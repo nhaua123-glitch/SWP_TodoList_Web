@@ -16,7 +16,7 @@ export async function getCurrentUser(): Promise<User | null> {
   } catch (err) {
     console.error('getCurrentUser error:', err);
     return null;
-  }
+  } 
 }
 
 export async function getCurrentSession() {
