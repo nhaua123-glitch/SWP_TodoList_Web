@@ -10,16 +10,16 @@ export async function POST(req: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-  get(name: string) {
-    return cookieStore.get(name)?.value
-  },
-  set(name: string, value: string, options: CookieOptions) { // <-- Đã sửa
-    cookieStore.set({ name, value, ...options })
-  },
-  remove(name: string, options: CookieOptions) { // <-- Đã sửa
-    cookieStore.set({ name, value: '', ...options })
-  },
-},
+          async get(name: string) { // <-- Thêm async
+            return (await cookieStore).get(name)?.value // <-- Thêm await
+          },
+          async set(name: string, value: string, options: CookieOptions) { // <-- Thêm async
+            (await cookieStore).set({ name, value, ...options }) // <-- Thêm await
+          },
+          async remove(name: string, options: CookieOptions) { // <-- Thêm async
+            (await cookieStore).set({ name, value: '', ...options }) // <-- Thêm await
+          },
+        },
       }
     )
     const body = await req.json();

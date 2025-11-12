@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
   // Bạn có thể dùng 'next' để điều hướng sau khi login thành công
   // Ví dụ: /login?next=/dashboard
-  const next = searchParams.get('next') ?? '/'
+  const next = searchParams.get('next') ?? '/calendar'
 
   if (code) {
     const cookieStore = cookies()
@@ -20,14 +20,14 @@ export async function GET(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          async get(name: string) {
-            return (await cookieStore).get(name)?.value
+          async get(name: string) { // <-- Thêm async
+            return (await cookieStore).get(name)?.value // <-- Thêm await
           },
-          async set(name: string, value: string, options: CookieOptions) {
-            (await cookieStore).set({ name, value, ...options })
+          async set(name: string, value: string, options: CookieOptions) { // <-- Thêm async
+            (await cookieStore).set({ name, value, ...options }) // <-- Thêm await
           },
-          async remove(name: string, options: CookieOptions) {
-            (await cookieStore).set({ name, value: '', ...options })
+          async remove(name: string, options: CookieOptions) { // <-- Thêm async
+            (await cookieStore).set({ name, value: '', ...options }) // <-- Thêm await
           },
         },
       }

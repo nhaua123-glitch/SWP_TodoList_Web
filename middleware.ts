@@ -78,6 +78,8 @@ export async function middleware(request: NextRequest) {
 
   // 🧭 Bảo vệ các trang UI
   const protectedRoutes = ["/list", "/dashboard", "/calendar", "/friends"];
+  
+  // <--- SỬA ĐỔI 1: THÊM trang chủ "/" VÀO ĐÂY
   const publicRoutes = ["/login", "/signup"];
 
   if (!hasValidSession && protectedRoutes.some(route => pathname.startsWith(route))) {
@@ -85,8 +87,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // <--- SỬA ĐỔI 2: DÙNG ".includes(pathname)" ĐỂ KIỂM TRA CHÍNH XÁC
   if (hasValidSession && publicRoutes.some(route => pathname.startsWith(route))) {
-    // Nếu đã đăng nhập và cố vào login/signup -> đá về trang chính (ví dụ: /calendar)
+    // Nếu đã đăng nhập và cố vào login/signup/trang chủ -> đá về trang chính
     return NextResponse.redirect(new URL("/calendar", request.url));
   }
 
