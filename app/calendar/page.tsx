@@ -36,9 +36,11 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false); // (State này có thể không cần nữa)
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [friendsList, setFriendsList] = useState<any[]>([]);
-  
-  // <--- SỬA ĐỔI 2: THÊM STATE ĐỂ GIỮ SESSION
   const [session, setSession] = useState<Session | null>(null);
+  const [myAvatarUrl, setMyAvatarUrl] = useState<string>("");
+  const [myUsername, setMyUsername] = useState<string>("");
+
+  // Inline Profile moved into BackgroundCustomizer sidebar
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -68,28 +70,34 @@ export default function Home() {
     subtasks: [],               
   });
 
-  // <--- SỬA ĐỔI 3: CẬP NHẬT USEEFFECT ĐỂ LẤY SESSION
   useEffect(() => {
     const getSessionAndData = async () => {
-      // Lấy session (thay vì chỉ getUser)
       const { data: { session } } = await supabase.auth.getSession();
-      setSession(session); // <-- Lưu session vào state
+      setSession(session); 
       
       const user = session?.user ?? null;
-      setCurrentUser(user); // <-- Lưu user vào state
+      setCurrentUser(user); 
 
       if (user) {
-        setIsAuthenticated(true); // Cập nhật state đăng nhập
+        setIsAuthenticated(true); 
         fetchTasks();
-        fetchFriends(user); // Truyền user vào để tránh gọi API 2 lần
+        fetchFriends(user); 
+        // Fetch my profile for avatar
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("avatar_url, username")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (prof?.avatar_url) setMyAvatarUrl(prof.avatar_url as string);
+        if (prof?.username) setMyUsername(prof.username as string);
       } else {
-        // Nếu không có session, có thể chuyển hướng về login
-        // router.push('/login');
         setLoading(false);
       }
     };
     getSessionAndData(); 
-  }, []); // Chỉ chạy 1 lần lúc tải trang
+  }, []);
+
+  // (Profile save + load now lives inside BackgroundCustomizer)
 
   console.log("Dữ liệu friendsList trong Form:", friendsList);
 
@@ -357,6 +365,62 @@ export default function Home() {
         nó có thể truy cập trực tiếp state 'session' của Home() 
       */}
       <BackgroundCustomizer session={session} />
+      {/* Top-right avatar button linking to Profile */}
+      {isAuthenticated && (
+        <>
+          <Link href="/profile">
+            <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '6px 12px', borderRadius: 999, border: '1px solid #e3c9ef', background: 'rgba(255,255,255,0.7)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', backdropFilter: 'blur(4px) saturate(1.1)' }} title="My Profile">
+              <span style={{ fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="wave-hand" aria-hidden>👋</span>
+                <span className="blink-greet">Xin chào{myUsername ? `, ${myUsername}` : ''}</span>
+              </span>
+              <img
+                src={myAvatarUrl || 'https://placehold.co/64x64?text=🙂'}
+                alt="me"
+                width={64}
+                height={64}
+                style={{ borderRadius: '50%', border: '2px solid #e3c9ef', objectFit: 'cover', transition: 'transform 0.2s ease' }}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/64x64?text=%F0%9F%99%82'; }}
+                onMouseOver={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.03)'; }}
+                onMouseOut={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1)'; }}
+              />
+            </div>
+          </Link>
+          <style jsx>{`
+            @keyframes wave {
+              0% { transform: rotate(0deg); }
+              15% { transform: rotate(14deg); }
+              30% { transform: rotate(-8deg); }
+              45% { transform: rotate(14deg); }
+              60% { transform: rotate(-4deg); }
+              75% { transform: rotate(10deg); }
+              100% { transform: rotate(0deg); }
+            }
+            .wave-hand {
+              display: inline-block;
+              transform-origin: 70% 70%;
+              animation: wave 1.8s ease-in-out infinite;
+            }
+            @keyframes blink {
+              0%, 50%, 100% { opacity: 1; }
+              25%, 75% { opacity: 0.7; }
+            }
+            @keyframes colorChange {
+              0%   { color: #e4b5e8; }
+              25%  { color: #94bbe9; }
+              50%  { color: #b8f1eb; }
+              75%  { color: #f2dcf4; }
+              100% { color: #c7e1ff; }
+            }
+            .blink-greet {
+              animation: blink 3.2s ease-in-out infinite, colorChange 6s linear infinite;
+            }
+          `}</style>
+        </>
+      )}
+
+      {/* Profile UI moved into the sidebar below */}
+
       <h2 className={styles.title}>My Task Calendar</h2>
 
       <div className={styles.mainContentContainer}>
@@ -480,6 +544,8 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
       </div>
     );
 
+    
+
     return (
       <>
         {isSidebarOpen && (
@@ -535,6 +601,15 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
                   </div>
               </label>
           </div>
+
+          {/* Link mở trang Profile riêng */}
+          <Link 
+              href="/profile" 
+              className={styles.dashboardHeader}
+          >
+            <span className={styles.dashboardLink}>Profile</span>
+          </Link>
+
           <Link 
               href="/dashboard" 
               className={styles.dashboardHeader}
