@@ -20,14 +20,14 @@ export async function GET(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          async get(name: string) { // <-- Thêm async
-            return (await cookieStore).get(name)?.value // <-- Thêm await
+          get(name: string) {
+            return cookieStore.get(name)?.value
           },
-          async set(name: string, value: string, options: CookieOptions) { // <-- Thêm async
-            (await cookieStore).set({ name, value, ...options }) // <-- Thêm await
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options })
           },
-          async remove(name: string, options: CookieOptions) { // <-- Thêm async
-            (await cookieStore).set({ name, value: '', ...options }) // <-- Thêm await
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set({ name, value: '', ...options })
           },
         },
       }

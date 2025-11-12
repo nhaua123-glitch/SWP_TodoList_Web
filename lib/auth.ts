@@ -9,23 +9,23 @@ export interface User {
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const cookieStore = cookies()
-const supabase = createServerClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    cookies: {
-      async get(name: string) {
-        return (await cookieStore).get(name)?.value
-      },
-      async set(name: string, value: string, options) {
-        (await cookieStore).set({ name, value, ...options })
-      },
-      async remove(name: string, options) {
-        (await cookieStore).set({ name, value: '', ...options })
-      },
-    },
-  }
-)
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set({ name, value: '', ...options })
+          },
+        },
+      }
+    )
     const { data, error } = await supabase.auth.getUser();
     if (error) return null;
     return (data.user as unknown as User) ?? null;
@@ -38,23 +38,23 @@ const supabase = createServerClient(
 export async function getCurrentSession() {
   try {
     const cookieStore = cookies()
-const supabase = createServerClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    cookies: {
-      async get(name: string) {
-        return (await cookieStore).get(name)?.value
-      },
-      async set(name: string, value: string, options) {
-        (await cookieStore).set({ name, value, ...options })
-      },
-      async remove(name: string, options) {
-        (await cookieStore).set({ name, value: '', ...options })
-      },
-    },
-  }
-)
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set({ name, value: '', ...options })
+          },
+        },
+      }
+    )
     const { data, error } = await supabase.auth.getSession();
     if (error) return null;
     return data.session ?? null;
@@ -72,23 +72,23 @@ export async function isAuthenticated(): Promise<boolean> {
 export async function logout(): Promise<boolean> {
   try {
     const cookieStore = cookies()
-const supabase = createServerClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    cookies: {
-      async get(name: string) {
-        return (await cookieStore).get(name)?.value
-      },
-      async set(name: string, value: string, options) {
-        (await cookieStore).set({ name, value, ...options })
-      },
-      async remove(name: string, options) {
-        (await cookieStore).set({ name, value: '', ...options })
-      },
-    },
-  }
-)
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set({ name, value: '', ...options })
+          },
+        },
+      }
+    )
     await supabase.auth.signOut();
     return true;
   } catch (error) {
