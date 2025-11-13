@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function GET(
   req: Request,
@@ -22,7 +22,24 @@ export async function GET(
 
   // Kiểm tra auth để cho chủ sở hữu xem private
   if (data.mode === "private") {
-    const supabaseAuth = createRouteHandlerClient({ cookies });
+    const cookieStore = cookies()
+const supabase = createServerClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    cookies: {
+      async get(name: string) {
+        return (await cookieStore).get(name)?.value
+      },
+      async set(name: string, value: string, options) {
+        (await cookieStore).set({ name, value, ...options })
+      },
+      async remove(name: string, options) {
+        (await cookieStore).set({ name, value: '', ...options })
+      },
+    },
+  }
+)
     const {
       data: { user },
     } = await supabaseAuth.auth.getUser();
