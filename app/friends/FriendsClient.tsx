@@ -16,12 +16,56 @@ export default function FriendsClient({ user, supabase }: Props) {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMsg, setInviteMsg] = useState("");
   const [profilesMap, setProfilesMap] = useState<Record<string, any>>({});
+  const [onlineIds, setOnlineIds] = useState<string[]>([]);
+  const [statusMap, setStatusMap] = useState<Record<string, { status: string; last_seen: string }>>({});
 
   useEffect(() => {
     if (user?.id) {
       fetchFriends();
     }
   }, [user, supabase]); // Thêm supabase vào dependency array cho an toàn
+
+  useEffect(() => {
+    let mounted = true;
+    const poll = async () => {
+      try {
+        // Lấy danh sách ID bạn bè đã accepted
+        const ids: string[] = friends
+          .map((f: any) => (f.sender_id === user.id ? f.receiver_id : f.sender_id))
+          .filter((id: string) => !!id);
+        if (ids.length === 0) {
+          if (mounted) {
+            setOnlineIds([]);
+            setStatusMap({});
+          }
+          return;
+        }
+        const res = await fetch("/api/public/users/status-by-ids", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids }),
+        });
+        if (!res.ok) return;
+        const { data } = await res.json();
+        const map: Record<string, { status: string; last_seen: string }> = {};
+        const online: string[] = [];
+        (data || []).forEach((u: any) => {
+          map[u.user_id] = { status: u.status, last_seen: u.last_seen };
+          if (u.status === "online") online.push(u.user_id);
+        });
+        if (mounted) {
+          setStatusMap(map);
+          setOnlineIds(online);
+        }
+      } catch (_) {}
+    };
+    poll();
+    const id = setInterval(poll, 5000);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, [friends, user?.id]);
 
   // ✅ Lấy toàn bộ bạn bè & lời mời
   const fetchFriends = async () => {
@@ -50,8 +94,8 @@ export default function FriendsClient({ user, supabase }: Props) {
     const ids = Array.from(
       new Set(
         data
-          .flatMap((f) => [f.sender_id, f.receiver_id])
-          .filter((id) => id && id !== user.id)
+          .flatMap((f: any) => [f.sender_id, f.receiver_id])
+          .filter((id: string) => id && id !== user.id)
       )
     );
 
@@ -108,8 +152,6 @@ export default function FriendsClient({ user, supabase }: Props) {
     fetchFriends();
   };
 
-  // 💡 5. LỖI CÚ PHÁP LÀ Ở ĐÂY:
-  // Lệnh "return" phải nằm BÊN TRONG hàm "FriendsClient"
   return (
     <div className="friends-container">
       <h2>👥 Bạn bè của tôi</h2>
@@ -176,7 +218,17 @@ export default function FriendsClient({ user, supabase }: Props) {
           const friendId = f.sender_id === user.id ? f.receiver_id : f.sender_id;
           return (
             <div key={f.id} className="friend-item">
-              <span>{profilesMap[friendId]?.email || f.receiver_email || f.sender_email || friendId}</span>
+              <span>
+                {onlineIds.includes(friendId) && (
+                  <span style={{ color: "green", marginRight: 6 }}>●</span>
+                )}
+                {profilesMap[friendId]?.email || f.receiver_email || f.sender_email || friendId}
+                {!onlineIds.includes(friendId) && statusMap[friendId]?.last_seen && (
+                  <span style={{ marginLeft: 8, color: "#6b7280", fontSize: 12 }}>
+                    (Hoạt động gần đây: {new Date(statusMap[friendId].last_seen).toLocaleString()})
+                  </span>
+                )}
+              </span>
               <div>
                 <button onClick={() => deleteFriend(f.id)}>🗑</button>
               </div>
@@ -186,4 +238,4 @@ export default function FriendsClient({ user, supabase }: Props) {
       )}
     </div>
   );
-} 
+}
