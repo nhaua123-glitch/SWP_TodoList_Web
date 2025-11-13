@@ -16,7 +16,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // ⚡ Bypass test routes
-  const bypassRoutes = ["/calendar", "/friends"]; // ✅ Bỏ /friends khỏi check
+  const bypassRoutes = ["/friends"]; // ✅ Bỏ /friends khỏi check
   if (bypassRoutes.some(r => pathname.startsWith(r))) {
     return res;
   }
@@ -33,7 +33,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // 🧭 Bảo vệ các trang khác
-  const protectedRoutes = ["/list", "/dashboard"];
+  const protectedRoutes = ["/calendar", "/list", "/dashboard"];
   if (!hasValidSession && protectedRoutes.includes(pathname)) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
