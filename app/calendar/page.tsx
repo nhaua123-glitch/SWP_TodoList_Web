@@ -56,6 +56,7 @@ export default function Home() {
     end: "",
     color: "#3174ad",
     type: "work",
+    status: "pending",
   });
 
 
@@ -102,7 +103,8 @@ export default function Home() {
       end_time: newTask.end,
       color: newTask.color,
       type: newTask.type,
-      completed: false,
+      status: newTask.status || "pending",
+      completed: (newTask.status || "pending") === "done" ? true : false,
     };      
 
       const { data, error } = await supabase.from("tasks").insert([task]).select();
@@ -195,7 +197,21 @@ export default function Home() {
   };
 
   const eventStyleGetter = (event: any) => {
-    const backgroundColor = event.completed ? "#acfab8ff" : event.color || "#285882ff";
+    // Ưu tiên màu theo trạng thái; fallback dùng màu của task nếu có
+    let backgroundColor = event.color || "#285882ff";
+    switch (event.status) {
+      case "pending":
+        backgroundColor = "#fde68a"; // amber-300
+        break;
+      case "in_progress":
+        backgroundColor = "#93c5fd"; // blue-300
+        break;
+      case "done":
+        backgroundColor = "#86efac"; // green-300
+        break;
+      default:
+        backgroundColor = event.completed ? "#86efac" : (event.color || "#285882ff");
+    }
     return { style: { backgroundColor } };
   };
 
@@ -799,6 +815,10 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
     const wasCompleted = originalEvent ? originalEvent.completed : false;
 
     // Cập nhật dữ liệu lên Supabase
+    // Ánh xạ completed theo status nếu có
+    const nextStatus = (finalEventToSave as any).status as string | undefined;
+    const completedByStatus = nextStatus ? nextStatus === "done" : finalEventToSave.completed;
+
     const { error } = await supabase
       .from("tasks")
       .update({
@@ -808,7 +828,8 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
         end_time: finalEventToSave.end.toISOString(),
         color: finalEventToSave.color,
         type: finalEventToSave.type,
-        completed: finalEventToSave.completed,
+        status: nextStatus ?? (finalEventToSave.completed ? "done" : "pending"),
+        completed: completedByStatus,
       })
       .eq("id", finalEventToSave.id);
 
@@ -820,7 +841,15 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
 
     // Cập nhật lại danh sách sự kiện ở component cha
     setEvents((prev) =>
-      prev.map((ev) => (ev.id === finalEventToSave.id ? finalEventToSave : ev))
+      prev.map((ev) => (
+        ev.id === finalEventToSave.id
+          ? {
+              ...finalEventToSave,
+              status: nextStatus ?? (finalEventToSave.completed ? "done" : "pending"),
+              completed: completedByStatus,
+            }
+          : ev
+      ))
     );
 
     // Logic cộng điểm
@@ -906,6 +935,18 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
           <option value="outdoor">Ngoài trời</option>
           <option value="personal">Cá nhân</option>
           <option value="other">Khác</option>
+        </select>
+      </label>
+      <label>
+        Status:
+        <select
+          name="status"
+          value={(editingEvent as any).status ?? (editingEvent.completed ? "done" : "pending")}
+          onChange={handleChange}
+        >
+          <option value="pending">Pending</option>
+          <option value="in_progress">In progress</option>
+          <option value="done">Done</option>
         </select>
       </label>
       <label>

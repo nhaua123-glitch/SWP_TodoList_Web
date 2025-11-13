@@ -36,15 +36,18 @@ export default function ListPage() {
     setLoading(false);
   };
 
-  const toggleCompleted = async (task: any) => {
-    const { error } = await supabase
-      .from("tasks")
-      .update({ completed: !task.completed })
-      .eq("id", task.id);
+  const setStatus = async (task: any, status: "pending" | "in_progress" | "done") => {
+    const payload: any = { status };
+    if (typeof task.completed !== "undefined") {
+      payload.completed = status === "done";
+    }
+    const { error } = await supabase.from("tasks").update(payload).eq("id", task.id);
     if (error) console.error(error);
     else {
       setTasks((prev) =>
-        prev.map((t) => (t.id === task.id ? { ...t, completed: !t.completed } : t))
+        prev.map((t) =>
+          t.id === task.id ? { ...t, status, completed: typeof t.completed !== "undefined" ? status === "done" : t.completed } : t
+        )
       );
     }
   };
@@ -110,14 +113,18 @@ export default function ListPage() {
                 key={task.id}
                 className={`${styles.taskItem} ${task.completed ? styles.completed : ""}`}
               >
-                <label className={styles.checkboxWrapper}>
-                  <input
-                    type="checkbox"
-                    checked={task.completed}
-                    onChange={() => toggleCompleted(task)}
-                  />
+                <div className={styles.checkboxWrapper}>
+                  <select
+                    value={task.status ?? (task.completed ? "done" : "pending")}
+                    onChange={(e) => setStatus(task, e.target.value as any)}
+                    style={{ marginRight: 8 }}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In progress</option>
+                    <option value="done">Done</option>
+                  </select>
                   <span className={styles.taskTitle}>{task.title}</span>
-                </label>
+                </div>
               </li>
             ))}
           </ul>
