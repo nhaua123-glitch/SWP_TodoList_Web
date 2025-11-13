@@ -3,16 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import FriendsClient from "./FriendsClient";
-import { createBrowserClient } from '@supabase/ssr'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'; // 👈 Dùng hàm này
 
 export default function Page() {
   const router = useRouter();
   
   // 1. Tạo client Supabase ĐÚNG CÁCH (chỉ 1 lần)
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const [supabase] = useState(() => createClientComponentClient());
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 

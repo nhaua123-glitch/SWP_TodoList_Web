@@ -442,34 +442,14 @@
 }
 
 .sidebarHeader {
-    font-size: 1.2rem;
-    color: #5e6c84;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    border-left: 4px solid #c3dafe;
-    padding-left: 10px;
-    padding-top: 5px; 
-    padding-bottom: 5px; 
-    width: 100%;
-    box-sizing: border-box;
+    composes: commonHeaderStyle; 
     margin-top: 0px; 
     margin-bottom: 20px;
 }
 
 /* Dashboard*/
 .dashboardHeader{
-    font-size: 1.2rem;
-    color: #5e6c84;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    border-left: 4px solid #c3dafe;
-    padding-left: 10px;
-    padding-top: 5px; 
-    padding-bottom: 5px; 
-    width: 100%;
-    box-sizing: border-box;
+    composes: commonHeaderStyle; 
     cursor: pointer;
     text-decoration: none;
     margin-top: 40px; 
@@ -576,10 +556,4 @@
   }
 }
 
-.profileToggleWrap {
-  position: fixed;
-  top: 16px;
-  left: 16px;
-  z-index: 1000;
-}
 
