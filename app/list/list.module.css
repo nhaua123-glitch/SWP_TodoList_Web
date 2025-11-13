@@ -1,0 +1,93 @@
+.page {
+  padding: 20px;
+  background: #fdfdfd;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.section {
+  margin-bottom: 25px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #444;
+}
+
+.count {
+  font-size: 14px;
+  color: #888;
+}
+
+.taskList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.taskItem {
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.taskItem:hover {
+  background: #f9f9f9;
+}
+
+.checkboxWrapper {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.taskTitle {
+  margin-left: 10px;
+  font-size: 15px;
+  color: #333;
+}
+
+.completed .taskTitle {
+  text-decoration: line-through;
+  color: #999;
+}
+
+
+/* chuyển đổi giữa 2 chế độ List và Calendar */
+.navbar {
+  position: fixed;
+  right: 20px;
+  top: 20px;
+  gap: 10px;
+}
+
+.switchBtn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #f3d8f4;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.switchBtn:hover {
+  background: #255a86;
+}

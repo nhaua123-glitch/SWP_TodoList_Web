@@ -1,5 +1,6 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+"use client";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+
 export interface User {
   id: string;
   email: string;
@@ -8,24 +9,7 @@ export interface User {
 
 export async function getCurrentUser(): Promise<User | null> {
   try {
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: '', ...options })
-          },
-        },
-      }
-    )
+    const supabase = createClientComponentClient();
     const { data, error } = await supabase.auth.getUser();
     if (error) return null;
     return (data.user as unknown as User) ?? null;
@@ -37,24 +21,7 @@ export async function getCurrentUser(): Promise<User | null> {
 
 export async function getCurrentSession() {
   try {
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: '', ...options })
-          },
-        },
-      }
-    )
+    const supabase = createClientComponentClient();
     const { data, error } = await supabase.auth.getSession();
     if (error) return null;
     return data.session ?? null;
@@ -71,24 +38,7 @@ export async function isAuthenticated(): Promise<boolean> {
 
 export async function logout(): Promise<boolean> {
   try {
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: '', ...options })
-          },
-        },
-      }
-    )
+    const supabase = createClientComponentClient();
     await supabase.auth.signOut();
     return true;
   } catch (error) {

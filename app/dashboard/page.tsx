@@ -1,31 +1,24 @@
-// File: app/dashboard/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createBrowserClient } from '@supabase/ssr'
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
-import type { Session } from '@supabase/supabase-js'; // <-- Thêm import này
 
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = createClientComponentClient();
 
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState<Session | null>(null); // <-- Dùng state này
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      setSession(session); // <-- Lưu lại session
-
       if (session) {
+        setIsAuthenticated(true);
         setLoading(false);
         fetchTasks();
       } else {
@@ -69,7 +62,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!session) {
+  if (!isAuthenticated) {
     return (
       <div style={{ 
         display: 'flex', 
@@ -90,12 +83,17 @@ export default function DashboardPage() {
           <Link href="/calendar"><button style={buttonStyle}>📅 Calendar</button></Link>
           <Link href="/list"><button style={buttonStyle}>📋 List</button></Link>
         </div>
-        
-        {/* TRUYỀN session VÀO ĐÂY */}
         <LogoutButton 
-          session={session} 
-        />
-
+          style={{ 
+            backgroundColor: '#dc3545', 
+            color: 'white', 
+            border: 'none', 
+            padding: '8px 16px', 
+            borderRadius: '4px'
+          }}
+        >
+          🚪 Logout
+        </LogoutButton>
       </div>
 
       <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Dashboard</h2>
@@ -183,3 +181,5 @@ function mapTypeLabel(type: string) {
       return "Khác";
   }
 }
+
+

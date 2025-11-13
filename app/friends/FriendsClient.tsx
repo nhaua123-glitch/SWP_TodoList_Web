@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import "./friends.css";
 
 
@@ -132,14 +131,7 @@ export default function FriendsClient({ user, supabase }: Props) {
   return (
     <div className="friends-scope"> 
       <div className="friends-container">
-        <div style={{ marginBottom: 12 }}>
-          <Link href="/calendar">
-            <button type="button" className="backBtn" title="Back to Calendar">
-              ← Back to Calendar
-            </button>
-          </Link>
-        </div>
-        <h2>🌸 Bạn bè của tôi</h2>
+        <h2>👥 Bạn bè của tôi</h2>
 
         {/* Form gửi lời mời */}
         <form onSubmit={handleInvite}>
@@ -160,10 +152,7 @@ export default function FriendsClient({ user, supabase }: Props) {
         ) : (
           pendingReceived.map((p) => (
             <div key={p.id} className="friend-item">
-              <div className="friend-info">
-                <span className="friend-icon pending">💌</span>
-                <span className="friend-email">{profilesMap[p.sender_id]?.email || p.sender_email || p.sender_id}</span>
-              </div>
+              <span>{profilesMap[p.sender_id]?.email || p.sender_email || p.sender_id}</span>
               <div>
                 <button
                   className="accept"
@@ -189,10 +178,7 @@ export default function FriendsClient({ user, supabase }: Props) {
         ) : (
           pendingSent.map((p) => (
             <div key={p.id} className="friend-item">
-              <div className="friend-info">
-                <span className="friend-icon sent">📤</span>
-                <span className="friend-email">{profilesMap[p.receiver_id]?.email || p.receiver_email || p.receiver_id}</span>
-              </div>
+              <span>{profilesMap[p.receiver_id]?.email || p.receiver_email || p.receiver_id}</span>
               <div>
                 <button onClick={() => deleteFriend(p.id)}>🕓 Hủy</button>
               </div>
@@ -209,10 +195,7 @@ export default function FriendsClient({ user, supabase }: Props) {
             const friendId = f.sender_id === user.id ? f.receiver_id : f.sender_id;
             return (
               <div key={f.id} className="friend-item">
-                <div className="friend-info">
-                  <span className="friend-icon accepted">🌟</span>
-                  <span className="friend-email">{profilesMap[friendId]?.email || f.receiver_email || f.sender_email || friendId}</span>
-                </div>
+                <span>{profilesMap[friendId]?.email || f.receiver_email || f.sender_email || friendId}</span>
                 <div>
                   <button onClick={() => deleteFriend(f.id)}>🗑</button>
                 </div>

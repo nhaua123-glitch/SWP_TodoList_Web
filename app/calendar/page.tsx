@@ -1,6 +1,3 @@
-// File: app/calendar/page.tsx
-// HÃY COPY VÀ DÁN TOÀN BỘ CODE NÀY
-
 "use client";
 
 import { useState, useEffect, useRef, ChangeEvent } from "react";
@@ -15,8 +12,8 @@ import styles from "./calendar.module.css";
 import WidgetTimer from "../components/widgettimer";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
-import { createBrowserClient } from '@supabase/ssr'
-import type { Session } from '@supabase/supabase-js'; // <--- SỬA ĐỔI 1: THÊM IMPORT SESSION
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+
 
 // ===================================
 
@@ -28,24 +25,14 @@ const DragAndDropCalendar = withDragAndDrop(Calendar);
 
 export default function Home() {
   const router = useRouter();
+  const supabase = createClientComponentClient();
   const [events, setEvents] = useState<any[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null); 
-  const [hoveredEvent, setHoveredEvent] = useState<any>(null);   
+  const [selectedEvent, setSelectedEvent] = useState<any>(null); // Task ĐANG BỊ CLICK để edit
+  const [hoveredEvent, setHoveredEvent] = useState<any>(null);   // Task ĐANG BỊ RÊ CHUỘT qua
   const [points, setPoints] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // (State này có thể không cần nữa)
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [friendsList, setFriendsList] = useState<any[]>([]);
-  const [session, setSession] = useState<Session | null>(null);
-  const [myAvatarUrl, setMyAvatarUrl] = useState<string>("");
-  const [myUsername, setMyUsername] = useState<string>("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Inline Profile moved into BackgroundCustomizer sidebar
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearTimer = () => {
@@ -55,7 +42,11 @@ export default function Home() {
     }
   };
 
+
+  // 💡 1. THÊM STATE ĐỂ QUẢN LÝ NGÀY THÁNG HIỆN TẠI (CHO NÚT BACK/NEXT)
   const [date, setDate] = useState(new Date());
+
+  // 💡 2. THÊM STATE QUẢN LÝ CHẾ ĐỘ XEM (CHO NÚT MONTH/WEEK/DAY)
   const [view, setView] = useState("month");
 
   const [newTask, setNewTask] = useState<any>({
@@ -65,216 +56,100 @@ export default function Home() {
     end: "",
     color: "#3174ad",
     type: "work",
-    visibility: "PRIVATE",      
-    collaborators: [],          
-    subtasks: [],               
   });
 
-  useEffect(() => {
-    const getSessionAndData = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session); 
-      
-      const user = session?.user ?? null;
-      setCurrentUser(user); 
 
-      if (user) {
-        setIsAuthenticated(true); 
-        fetchTasks();
-        fetchFriends(user); 
-        // Fetch my profile for avatar
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("avatar_url, username")
-          .eq("id", user.id)
-          .maybeSingle();
-        if (prof?.avatar_url) setMyAvatarUrl(prof.avatar_url as string);
-        if (prof?.username) setMyUsername(prof.username as string);
-      } else {
-        setLoading(false);
-      }
-    };
-    getSessionAndData(); 
+ // vào user, truy cập data
+  useEffect(() => {
+    fetchTasks();
   }, []);
 
-  // (Profile save + load now lives inside BackgroundCustomizer)
-
-  console.log("Dữ liệu friendsList trong Form:", friendsList);
 
   const fetchTasks = async () => {
     setLoading(true);
-    // ... (Code fetchTasks của bạn giữ nguyên)
-    const { data: tasksData, error: tasksError } = await supabase.from("tasks").select("*");
-    if (tasksError) {
-      console.error("Lỗi lấy tasks:", tasksError);
-      setLoading(false);
-      return;
-    }
-    if (!tasksData || tasksData.length === 0) {
-      setEvents([]);
-      setLoading(false);
-      return;
-    }
-    const taskIds = tasksData.map((t: any) => t.id);
-    const { data: collabRows, error: collabError } = await supabase
-      .from("task_collaborators")
-      .select("task_id, user_id, role")
-      .in("task_id", taskIds);
-    if (collabError) console.error("Lỗi lấy task_collaborators:", collabError);
-    const collaboratorUserIds = Array.from(new Set((collabRows || []).map((r: any) => r.user_id)));
-    let profilesMap: Record<string, any> = {};
-    if (collaboratorUserIds.length > 0) {
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, username, email, avatar_url")
-        .in("id", collaboratorUserIds);
-      if (profilesError) console.error("Lỗi lấy profiles của collaborators:", profilesError);
-      else if (profilesData) profilesMap = profilesData.reduce((acc: any, p: any) => { acc[p.id] = p; return acc; }, {});
-    }
-    const formatted = tasksData.map((task: any) => {
-      const taskCollabs = (collabRows || []).filter((c: any) => c.task_id === task.id);
-      const collaborators = taskCollabs.map((c: any) => ({
-        user_id: c.user_id,
-        role: c.role,
-        profile: profilesMap[c.user_id] || null,
+    const { data, error } = await supabase.from("tasks").select("*");
+    if (error) console.error(error);
+    else {
+      const formatted = data.map((task) => ({
+        ...task,
+        start: new Date(task.start_time),
+        end: new Date(task.end_time),
       }));
-      return { ...task, start: new Date(task.start_time), end: new Date(task.end_time), collaborators, };
-    });
-    setEvents(formatted);
+      setEvents(formatted);
+    }
     setLoading(false);
   };
 
-  // Sửa fetchFriends để nhận 'user' từ useEffect, tránh gọi supabase.auth.getUser() 2 lần
-  const fetchFriends = async (user: any) => {
-    if (!user) return;
-
-    const { data: friendsData, error: friendsError } = await supabase
-      .from('friends')
-      .select('sender_id, receiver_id')
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      .eq('status', 'accepted'); 
-
-    if (friendsError) {
-      console.error("Lỗi lấy danh sách bạn bè:", friendsError);
-      return;
-    }
-    if (!friendsData || friendsData.length === 0) {
-      setFriendsList([]); 
-      return;
-    }
-    const friendIds = friendsData.map((f: any) => 
-      f.sender_id === user.id ? f.receiver_id : f.sender_id
-    );
-    const { data: profilesData, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, username, email, avatar_url')
-      .in('id', friendIds);
-    if (profilesError) {
-      console.error("Lỗi lấy thông tin profile bạn bè:", profilesError);
-      return;
-    }
-    if (profilesData) {
-      const formattedFriends = profilesData.map((u: any) => ({
-        id: u.id,
-        name: u.username || u.email || "Bạn ẩn danh"
-      }));
-      setFriendsList(formattedFriends);
-    }
-  };
-
-
   const handleAddTask = async () => {
-    // ... (Code handleAddTask của bạn giữ nguyên)
-    if (!newTask.title || !newTask.start || !newTask.end)
-      return alert("Vui lòng điền đủ thông tin!");
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const taskPayload = {
-        user_id: user.id,
-        title: newTask.title.trim(),
-        description: newTask.description?.trim() || "",
-        start_time: newTask.start,
-        end_time: newTask.end,
-        color: newTask.color || "#3174ad",
-        type: newTask.type || "work",
-        visibility: newTask.visibility || "PRIVATE",
-        completed: false,
-      };
-      const { data: taskData, error: taskError } = await supabase
-        .from("tasks")
-        .insert([taskPayload])
-        .select()
-        .single();
-      if (taskError) throw taskError;
-      const newTaskId = taskData.id;
-      const promises: Promise<any>[] = [];
-      if (newTask.visibility === "PUBLIC" && newTask.collaborators?.length > 0) {
-        const collaboratorsPayload = newTask.collaborators.map((friendId: string) => ({
-          task_id: newTaskId,
-          user_id: friendId,
-          role: "EDITOR",
-        }));
-        promises.push(Promise.resolve(supabase.from("task_collaborators").insert(collaboratorsPayload).select() as any) as Promise<any>);
-      }
-      if (newTask.subtasks?.length > 0) {
-        const subtasksPayload = newTask.subtasks.map((st: any) => ({
-          task_id: newTaskId,
-          title: st.title?.trim(),
-          assignee_id: st.assignee_id || user.id,
-          is_completed: false,
-        }));
-        promises.push(Promise.resolve(supabase.from("subtasks").insert(subtasksPayload).select() as any) as Promise<any>);
-      }
-      await Promise.all(promises);
-      const addedEvent = {
-        ...taskData,
-        start: new Date(taskData.start_time),
-        end: new Date(taskData.end_time),
-      };
-      setEvents((prev) => [...prev, addedEvent]);
-      setNewTask({
-        title: "", description: "", start: "", end: "", color: "#3174ad",
-        type: "work", visibility: "PRIVATE", collaborators: [], subtasks: [],
-      });
-    } catch (error) {
-      console.error("❌ Lỗi khi tạo task:", error);
-      alert("Không thể thêm task, vui lòng thử lại!");
-    } finally {
-      setLoading(false);
+    if (!newTask.title || !newTask.start || !newTask.end) return;
+
+    // 1. Lấy thông tin người dùng hiện tại
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // 2. Kiểm tra xem người dùng đã đăng nhập chưa
+    if (!user) {
+      console.error("User is not logged in. Cannot add task.");
+      // Bạn có thể thêm thông báo cho người dùng ở đây
+      return;
     }
-  };
 
+    const task = {
+      // 3. Thêm user_id vào task
+      user_id: user.id, 
+      title: newTask.title,
+      description: newTask.description,
+      start_time: newTask.start,
+      end_time: newTask.end,
+      color: newTask.color,
+      type: newTask.type,
+      completed: false,
+    };      
 
-  const handleSelectSlot = (slotInfo: any) => {
-    // ... (Code của bạn giữ nguyên)
-    setSelectedEvent(null); 
-    setHoveredEvent(null);  
-    setNewTask({
-      title: "",
-      description: "",
-      start: slotInfo.start.toISOString().slice(0, 16),
-      end: slotInfo.end.toISOString().slice(0, 16),
-      color: "#6a879fff",
-      type: "work",
-    });
-  };
+      const { data, error } = await supabase.from("tasks").insert([task]).select();
+      
+      if (error) {
+        console.error("Supabase insert error:", error); // In lỗi ra để xem rõ hơn
+      } else {
+        const added = {
+          ...data[0],
+          start: new Date(data[0].start_time),
+          end: new Date(data[0].end_time),
+        };
+        setEvents([...events, added]);
+        setNewTask({ title: "", start: "", end: "", color: "#3174ad", type: "work", description: "" });
+      }
+    };
 
-  const handleMouseLeave = () => {
-    // ... (Code của bạn giữ nguyên)
-    timerRef.current = setTimeout(() => {
-      setSelectedEvent(null);
-    }, 300);
-  };
+    const handleSelectSlot = (slotInfo: any) => {
+      setSelectedEvent(null); // Chuyển sidebar về chế độ ADD
+      setHoveredEvent(null);  // Xóa mọi thông tin hover
+
+      setNewTask({
+        title: "",
+        description: "",
+        start: slotInfo.start.toISOString().slice(0, 16),
+        end: slotInfo.end.toISOString().slice(0, 16),
+        color: "#6a879fff",
+        type: "work",
+      });
+
+    };
+
+    // Khi di chuột ra khỏi task HOẶC sidebar
+    const handleMouseLeave = () => {
+      // Đặt timer để ẩn sidebar sau 300ms (đủ thời gian di chuyển chuột)
+      timerRef.current = setTimeout(() => {
+        setSelectedEvent(null);
+      }, 300);
+    };
 
 
   const handleEventDrop = async ({ event, start, end, isAllDay }: any) => {
-    // ... (Code của bạn giữ nguyên)
     const updatedEvents = events.map((existingEvent) =>
       existingEvent.id === event.id ? { ...existingEvent, start, end, isAllDay } : existingEvent
     );
     setEvents(updatedEvents);
+
     const { error } = await supabase
       .from("tasks")
       .update({
@@ -282,42 +157,42 @@ export default function Home() {
         end_time: end.toISOString(),
       })
       .eq("id", event.id);
+
     if (error) console.error("Error updating task date in Supabase:", error);
   };
 
   const eventStyleGetter = (event: any) => {
-    // ... (Code của bạn giữ nguyên)
     const backgroundColor = event.completed ? "#acfab8ff" : event.color || "#285882ff";
     return { style: { backgroundColor } };
   };
 
   const taskTypeIcons: Record<string, string> = {
-    // ... (Code của bạn giữ nguyên)
-    work: "💼", study: "📚", outdoor: "🌳", personal: "🧘", other: "🔹",
+    work: "💼",
+    study: "📚",
+    outdoor: "🌳",
+    personal: "🧘",
+    other: "🔹",
   };
 
   const handleEventHover = (event: any) => {
-    // ... (Code của bạn giữ nguyên)
-    if (!selectedEvent) { 
+    if (!selectedEvent) { // Chỉ hiển thị hover NẾU không có task nào đang được edit
       setHoveredEvent(event);
     }
   };
 
   const handleEventMouseLeave = () => {
-    // ... (Code của bạn giữ nguyên)
     if (!selectedEvent) {
       setHoveredEvent(null);
     }
   };
 
   const EventComponent = ({ event }: { event: any }) => {
-    // ... (Code của bạn giữ nguyên)
     const start = new Date(event.start).toLocaleString();
     const end = new Date(event.end).toLocaleString();
     return (
       <span
         title={`📌 ${event.title}\n🗓 ${start} - ${end}\n📝 ${event.description || "No description"}`}
-        style={{ cursor: "pointer", display: "block", height: "100%" }} 
+        style={{ cursor: "pointer", display: "block", height: "100%" }} // Style để bắt hover dễ hơn
         onMouseEnter={() => handleEventHover(event)}  
         onMouseLeave={handleEventMouseLeave}
       >
@@ -344,6 +219,7 @@ export default function Home() {
     <div className={styles.page}>
       <PointsBar points={points} />
 
+      {/* === KẾT NỐI BẠN BÈ === */}
       <div style={{ margin: "20px 0", textAlign: "center" }}>
         <Link href="/friends">
           <button
@@ -361,95 +237,48 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* Vì BackgroundCustomizer được định nghĩa BÊN TRONG Home(),
-        nó có thể truy cập trực tiếp state 'session' của Home() 
-      */}
-      <BackgroundCustomizer session={session} />
-      {/* Top-right avatar button linking to Profile */}
-      {isAuthenticated && (
-        <>
-          <Link href="/profile">
-            <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '6px 12px', borderRadius: 999, border: '1px solid #e3c9ef', background: 'rgba(255,255,255,0.7)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', backdropFilter: 'blur(4px) saturate(1.1)' }} title="My Profile">
-              <span style={{ fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="wave-hand" aria-hidden>👋</span>
-                <span className="blink-greet">Xin chào{myUsername ? `, ${myUsername}` : ''}</span>
-              </span>
-              <img
-                src={myAvatarUrl || 'https://placehold.co/64x64?text=🙂'}
-                alt="me"
-                width={64}
-                height={64}
-                style={{ borderRadius: '50%', border: '2px solid #e3c9ef', objectFit: 'cover', transition: 'transform 0.2s ease' }}
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/64x64?text=%F0%9F%99%82'; }}
-                onMouseOver={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.03)'; }}
-                onMouseOut={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1)'; }}
-              />
-            </div>
-          </Link>
-          <style jsx>{`
-            @keyframes wave {
-              0% { transform: rotate(0deg); }
-              15% { transform: rotate(14deg); }
-              30% { transform: rotate(-8deg); }
-              45% { transform: rotate(14deg); }
-              60% { transform: rotate(-4deg); }
-              75% { transform: rotate(10deg); }
-              100% { transform: rotate(0deg); }
-            }
-            .wave-hand {
-              display: inline-block;
-              transform-origin: 70% 70%;
-              animation: wave 1.8s ease-in-out infinite;
-            }
-            @keyframes blink {
-              0%, 50%, 100% { opacity: 1; }
-              25%, 75% { opacity: 0.7; }
-            }
-            @keyframes colorChange {
-              0%   { color: #e4b5e8; }
-              25%  { color: #94bbe9; }
-              50%  { color: #b8f1eb; }
-              75%  { color: #f2dcf4; }
-              100% { color: #c7e1ff; }
-            }
-            .blink-greet {
-              animation: blink 3.2s ease-in-out infinite, colorChange 6s linear infinite;
-            }
-          `}</style>
-        </>
-      )}
 
-      {/* Profile UI moved into the sidebar below */}
 
+      <BackgroundCustomizer />
       <h2 className={styles.title}>My Task Calendar</h2>
 
+
+      {/* ========================================= */}
+      {/* VÙNG NỘI DUNG CHÍNH (SIDEBAR + CALENDAR) */}
+      {/* ========================================= */}
       <div className={styles.mainContentContainer}>
+
+        {/* SIDEBAR (Luôn hiển thị) */}
         <div className={styles.editSidebar}>
+          
+          {/* LOGIC HIỂN THỊ CỦA SIDEBAR */}
           {selectedEvent ? (
+            // 1. Nếu có task đang được CLICK (EDIT MODE)
             <EditModal
               selectedEvent={selectedEvent}
+              
               setEvents={setEvents}
               events={events}
-              setShowModal={() => setSelectedEvent(null)}
+              setShowModal={() => setSelectedEvent(null)} // Nút Cancel/Save sẽ set selectedEvent về null
               setPoints={setPoints}
               supabase={supabase}
-              friendsList={friendsList}
-              currentUser={currentUser}
             />
           ) : hoveredEvent ? (
+            // 2. Nếu không, kiểm tra có task đang được HOVER (VIEW MODE)
             <TaskDetailsView event={hoveredEvent} />
           ) : (
+            // 3. Mặc định là Form Add Task (ADD MODE)
             <AddTaskForm
               newTask={newTask}
               setNewTask={setNewTask}
               handleAddTask={handleAddTask}
               supabase={supabase}
-              friendsList={friendsList} 
-              currentUser={currentUser} 
             />
           )}
+
         </div>
 
+        {/* CALENDAR */}
         <div className={styles.calendarContainer}>
           <DragAndDropCalendar
             localizer={localizer}
@@ -458,14 +287,17 @@ export default function Home() {
             endAccessor={(event: any) => new Date(event.end)}
             style={{ height: 600 }}
             eventPropGetter={eventStyleGetter}
+            
+            // 💡 CẬP NHẬT onSelectEvent (Click vào task)
             onSelectEvent={(event) => {
-              setSelectedEvent(event); 
-              setHoveredEvent(null);  
+              setSelectedEvent(event); // "Khóa" task này để edit
+              setHoveredEvent(null);  // Xóa thông tin hover
             }}
+
             selectable
-            onSelectSlot={handleSelectSlot} 
+            onSelectSlot={handleSelectSlot} // Đã cập nhật ở trên
             components={{
-              event: EventComponent, 
+              event: EventComponent, // Đã cập nhật ở trên
             }}
             resizable={false}
             onEventDrop={handleEventDrop}
@@ -477,6 +309,7 @@ export default function Home() {
         </div>
       </div>
       
+      {/* WIDGET TIMER */}
       <WidgetTimer tasks={events as unknown as never[]} />
     </div>
   );
@@ -487,10 +320,7 @@ export default function Home() {
 // -----------------------------------------------------------------------------
 
   // Custom bg và các cài đặt khác
-function BackgroundCustomizer({ session }: { session: Session | null }) {
-    // Component này được định nghĩa BÊN TRONG Home(),
-    // nên nó có thể truy cập state 'session' của Home()
-    
+  function BackgroundCustomizer() {
     const [bgColor, setBgColor] = useState("#ffffff");
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -527,6 +357,7 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
         setIsSidebarOpen(false);
     };
 
+    // CSS cho icon 3 gạch (Hamburger)
     const HamburgerIcon = (
       <div 
         style={{ 
@@ -538,22 +369,26 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
           margin: 'auto'
         }}
       >
+        {/* Dùng class cho thanh ngang */}
         <div className={styles.iconBar}></div>
         <div className={styles.iconBar}></div>
         <div className={styles.iconBar}></div>
       </div>
     );
 
-    
-
     return (
       <>
+      {/* Lớp phủ mờ khi Sidebar mở - bấm ra ngoài để tắt sidebar */}
         {isSidebarOpen && (
             <div 
                 onClick={handleCloseSidebar}
                 style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(122, 118, 118, 0.3)', 
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(122, 118, 118, 0.3)', // Độ mờ 30%
                     zIndex: 999, 
                     transition: 'opacity 0.3s ease-in-out',
                     cursor: 'pointer',
@@ -561,25 +396,30 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
             />
         )}
 
+        {/* 1. Nút Menu/Toggle */}
         <button 
           onClick={toggleSidebar} 
           title="Mở Tùy chỉnh nền"
-          className={styles.toggleButton} 
+          className={styles.toggleButton} // 🔥 SỬ DỤNG CLASS
           style={{ 
-            transform: isSidebarOpen ? 'rotate(0deg)' : 'rotate(0deg)', 
+            // Vị trí cố định (Giữ lại CSS in-line nếu bạn không muốn refactor toàn bộ)
+            // Tốt nhất là sử dụng class: className={styles.toggleButton}
+            transform: isSidebarOpen ? 'rotate(0deg)' : 'rotate(0deg)', // Bạn có thể thêm xoay ở đây
           }}
         >
           {HamburgerIcon} 
         </button>
 
+        {/* 2. Sidebar Menu */}
         <div 
           className={styles.sidebar} 
           style={{ 
             transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
             transition: 'transform 0.3s ease-in-out',
-            pointerEvents: isSidebarOpen ? 'auto' : 'none', 
+            pointerEvents: isSidebarOpen ? 'auto' : 'none', // Fix lỗi chặn click
           }}
         >
+          {/* ... (Nội dung sidebar) ... */}
           <div className={styles.sidebarHeader}>
               Tùy Chỉnh Giao Diện
           </div>
@@ -601,15 +441,6 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
                   </div>
               </label>
           </div>
-
-          {/* Link mở trang Profile riêng */}
-          <Link 
-              href="/profile" 
-              className={styles.dashboardHeader}
-          >
-            <span className={styles.dashboardLink}>Profile</span>
-          </Link>
-
           <Link 
               href="/dashboard" 
               className={styles.dashboardHeader}
@@ -617,13 +448,12 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
             <span className={styles.dashboardLink}>Dashboard</span>
           </Link>
           <div className={styles.logoutContainer}> 
-              
-              {/* <--- SỬA ĐỔI 4: TRUYỀN session VÀO NÚT LOGOUT */}
               <LogoutButton
-                session={session} // <--- TRUYỀN SESSION VÀO ĐÂY
                 style={{
+                  backgroundColor: '#dc3545', 
                   color: 'white',
                   border: 'none',
+                  padding: '10px 20px',
                   borderRadius: '4px',
                   cursor: 'pointer',
                   width: '100%',
@@ -640,12 +470,11 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
   }
 
 
-// ... (Các component AddTaskForm, TaskDetailsView, PointsBar, EditModal giữ nguyên) ...
-// (Mình sẽ bỏ qua chúng để cho ngắn gọn, bạn không cần thay đổi gì ở chúng)
-
 // 💡 TẠO COMPONENT MỚI ĐỂ XEM CHI TIẾT
 function TaskDetailsView({ event }: { event: any }) {
-  const taskTypeIcons = { work: "💼", study: "📚", outdoor: "🌳", personal: "🧘", other: "🔹" };
+  const taskTypeIcons = { // Lấy lại icons
+    work: "💼", study: "📚", outdoor: "🌳", personal: "🧘", other: "🔹"
+  };
 
   return (
     <div className={styles.taskDetailsView}>
@@ -655,25 +484,6 @@ function TaskDetailsView({ event }: { event: any }) {
       <p><strong>Kết thúc:</strong> {new Date(event.end).toLocaleString()}</p>
       <p><strong>Mô tả:</strong></p>
       <p className={styles.taskDescription}>{event.description || "Không có mô tả."}</p>
-
-      <div style={{ marginTop: 10 }}>
-        <strong>Collaborators:</strong>
-        {event.collaborators && event.collaborators.length > 0 ? (
-          <ul style={{ paddingLeft: 16, marginTop: 6 }}>
-            {event.collaborators.map((c: any) => (
-              <li key={c.user_id} style={{ marginBottom: 6 }}>
-                <span style={{ marginRight: 8 }}>
-                  {c.profile?.username || c.profile?.email || "Bạn ẩn danh"}
-                </span>
-                <small style={{ color: "#666" }}>{c.role ? `(${c.role})` : ""}</small>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div style={{ marginTop: 6, color: "#666" }}>Không có cộng tác viên</div>
-        )}
-      </div>
-
       <p className={styles.viewNote}>
         Nhấn vào công việc để chỉnh sửa.
       </p>
@@ -681,37 +491,7 @@ function TaskDetailsView({ event }: { event: any }) {
   );
 }
 
-
-function AddTaskForm({ newTask, setNewTask, handleAddTask,friendsList = [], currentUser }: any) {
-  // Thêm subtask
-  const addSubtaskField = () => {
-    setNewTask({
-      ...newTask,
-      subtasks: [...newTask.subtasks, { title: "", assignee_id: currentUser?.id }]
-    });
-  };
-
-  // --- HELPER: Cập nhật nội dung subtask ---
-  const updateSubtask = (index: number, field: string, value: any) => {
-    const updatedSubtasks = [...newTask.subtasks];
-    updatedSubtasks[index] = { ...updatedSubtasks[index], [field]: value };
-    setNewTask({ ...newTask, subtasks: updatedSubtasks });
-  };
-
-  // --- HELPER: Xóa subtask ---
-  const removeSubtask = (index: number) => {
-    const updatedSubtasks = newTask.subtasks.filter((_: any, i: number) => i !== index);
-    setNewTask({ ...newTask, subtasks: updatedSubtasks });
-  };
-
-  // Tạo danh sách những người có thể assign task (Gồm mình + bạn bè đã chọn)
-  const assignableUsers = [
-    { id: currentUser?.id, name: '🙋‍♂️ Tôi' },
-    ...(newTask.visibility === 'PUBLIC' 
-        ? friendsList.filter((f: any) => newTask.collaborators?.includes(f.id)) 
-        : [])
-  ];
-
+function AddTaskForm({ newTask, setNewTask, handleAddTask }: any) {
  return (
     <div className={styles.addForm}> 
       <h3>Add New Task</h3>
@@ -768,89 +548,9 @@ function AddTaskForm({ newTask, setNewTask, handleAddTask,friendsList = [], curr
           <option value="other">Khác</option>
         </select>
       </label>
-      {/* Chọn chế độ */}
-      <div style={{ marginTop: '15px', marginBottom: '15px' }}>
-        <label style={{ fontWeight: 'bold' }}>Chế độ:</label>
-        <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
-          <button 
-            className={newTask.visibility === 'PRIVATE' ? styles.save : styles.cancel}
-            onClick={() => setNewTask({ ...newTask, visibility: 'PRIVATE', collaborators: [] })}
-          >
-            🔒 Cá nhân
-          </button>
-          <button 
-            className={newTask.visibility === 'PUBLIC' ? styles.save : styles.cancel}
-            onClick={() => setNewTask({ ...newTask, visibility: 'PUBLIC' })}
-          >
-            👥 Hợp tác
-          </button>
-        </div>
-      </div>
-      {/* Chọn bạn bè (nếu chế độ PUBLIC) */}
-      {newTask.visibility === 'PUBLIC' && (
-        <div style={{ marginBottom: '15px', padding: '10px', border: '1px dashed #ccc', borderRadius: '6px' }}>
-          <label style={{ fontWeight: 'bold' }}>Mời bạn bè tham gia:</label>
-          <div style={{ maxHeight: '100px', overflowY: 'auto', marginTop: '5px' }}>
-            {friendsList.map((friend: any) => (
-              <div key={friend.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <input
-                  type="checkbox"
-                  id={`friend-${friend.id}`}
-                  checked={newTask.collaborators?.includes(friend.id) || false}
-                  onChange={(e) => {
-                    const currentCollaborators = newTask.collaborators || [];
-                    if (e.target.checked) {
-                      setNewTask({ ...newTask, collaborators: [...currentCollaborators, friend.id] });
-                    } else {
-                      setNewTask({ ...newTask, collaborators: currentCollaborators.filter((id: string) => id !== friend.id) });
-                    }
-                  }}
-                />
-                <label htmlFor={`friend-${friend.id}`} style={{ cursor: 'pointer' }}>{friend.name}</label>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {/* Subtasks */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <label style={{ fontWeight: 'bold' }}>Công việc nhỏ (Subtasks):</label>
-          <button onClick={addSubtaskField} style={{ fontSize: '12px', padding: '2px 8px', cursor: 'pointer' }}>+ Thêm</button>
-        </div>
-        
-        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {newTask.subtasks?.map((st: any, index: number) => (
-            <div key={index} style={{ display: 'flex', gap: '5px' }}>
-              {/* Tên subtask */}
-              <input
-                type="text"
-                placeholder="Tên việc nhỏ..."
-                value={st.title}
-                onChange={(e) => updateSubtask(index, 'title', e.target.value)}
-                style={{ flex: 1 }}
-              />
-              {/* Dropdown chọn người làm */}
-              <select
-                value={st.assignee_id}
-                onChange={(e) => updateSubtask(index, 'assignee_id', e.target.value)}
-                className={styles.subtaskSelect}
-                title={`Assign subtask ${st.title || 'New subtask'}`}
-                aria-label={`Assign subtask ${st.title || 'New subtask'}`}
-              >
-                 {assignableUsers.map((u: any) => (
-                   <option key={u.id} value={u.id}>{u.name}</option>
-                 ))}
-              </select>
-              {/* Nút xoá dòng này */}
-              <button onClick={() => removeSubtask(index)} style={{ color: 'red', border: 'none', background: 'none', cursor: 'pointer' }}>✕</button>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <div className={styles.buttonGroupadd}>
         <button className={styles.save} onClick={handleAddTask}>Add Task</button>
+        {/* Nút Cancel giờ sẽ clear form */}
         <button 
           className={styles.cancel} 
           onClick={() => setNewTask({ title: "", start: "", end: "", color: "#3174ad", type: "work", description: "" })}
@@ -883,7 +583,6 @@ function PointsBar({ points }: { points: number }) {
 
 
 interface Task {
-  collaborators: never[];
   id: number;
   title: string;
   description?: string;
@@ -902,38 +601,38 @@ interface EditModalProps {
   events: Task[];
 }
 
-function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, supabase, friendsList = [], currentUser }: EditModalProps & { supabase: any, friendsList?: any[], currentUser?: any }) {
-  const [editingEvent, setEditingEvent] = useState<any>(selectedEvent);
-  const [localCollaborators, setLocalCollaborators] = useState<string[]>([]); // mảng user_id string
+function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, supabase }: EditModalProps & { supabase: any }) {
+  // ✅ STATE: Dùng state cục bộ này để lưu lại các thay đổi khi bạn chỉnh sửa.
+  const [editingEvent, setEditingEvent] = useState(selectedEvent);
 
+  // useEffect này đảm bảo rằng nếu một sự kiện mới được chọn,
+  // form chỉnh sửa sẽ được reset lại với dữ liệu của sự kiện mới đó.
   useEffect(() => {
     setEditingEvent(selectedEvent);
-    // Init local collaborators from selectedEvent.collaborators (mảng object)
-    const init = (selectedEvent?.collaborators || []).map((c: any) => c.user_id);
-    setLocalCollaborators(init);
   }, [selectedEvent]);
 
+  // ✅ HANDLER: Một hàm xử lý duy nhất cho tất cả các input trong form.
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const target = e.target as HTMLInputElement | HTMLSelectElement;
     const { name, value, type } = target;
     const checked = (target as HTMLInputElement).checked;
+    // Nếu là checkbox thì lấy giá trị 'checked', ngược lại lấy 'value'.
     const finalValue = type === 'checkbox' ? checked : value;
-    setEditingEvent((prev: any) => ({ ...prev, [name]: finalValue }));
-  };
 
-  const toggleCollaborator = (userId: string) => {
-    setLocalCollaborators(prev => prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]);
+    setEditingEvent(prev => ({
+      ...prev,
+      [name]: finalValue,
+    }));
   };
 
   const handleDelete = async () => {
+    // Nên có một bước xác nhận trước khi xóa.
     if (window.confirm(`Bạn có chắc muốn xóa công việc "${selectedEvent.title}" không?`)) {
       const { error } = await supabase.from("tasks").delete().eq("id", selectedEvent.id);
       if (error) {
         console.error("Lỗi khi xóa công việc:", error);
         alert("Xóa thất bại!");
       } else {
-        // Xóa collaborators liên quan (cleanup) - optional
-        await supabase.from("task_collaborators").delete().eq("task_id", selectedEvent.id);
         setEvents((prev) => prev.filter((ev) => ev.id !== selectedEvent.id));
         setShowModal(false);
       }
@@ -941,102 +640,61 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
   };
 
   const handleSave = async () => {
-    try {
-      // chuẩn hoá start/end
-      const startDate = new Date(editingEvent.start);
-      const endDate = new Date(editingEvent.end);
+    // Chuyển đổi giá trị chuỗi (string) từ input thành đối tượng Date để lưu trữ
+    const finalEventToSave = {
+      ...editingEvent,
+      start: new Date(editingEvent.start),
+      end: new Date(editingEvent.end),
+    };
 
-      // Update tasks table
-      const { error: updateError } = await supabase
-        .from("tasks")
-        .update({
-          title: editingEvent.title,
-          description: editingEvent.description,
-          start_time: startDate.toISOString(),
-          end_time: endDate.toISOString(),
-          color: editingEvent.color,
-          type: editingEvent.type,
-          completed: editingEvent.completed,
-          visibility: editingEvent.visibility || "PRIVATE"
-        })
-        .eq("id", editingEvent.id);
+    // Tìm sự kiện gốc để so sánh trạng thái 'completed' cho logic cộng điểm
+    const originalEvent = events.find((ev) => ev.id === finalEventToSave.id);
+    const wasCompleted = originalEvent ? originalEvent.completed : false;
 
-      if (updateError) {
-        console.error("Lỗi khi cập nhật công việc:", updateError);
-        alert("Lưu thay đổi thất bại. Vui lòng thử lại.");
-        return;
-      }
+    // Cập nhật dữ liệu lên Supabase
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        title: finalEventToSave.title,
+        description: finalEventToSave.description,
+        start_time: finalEventToSave.start.toISOString(),
+        end_time: finalEventToSave.end.toISOString(),
+        color: finalEventToSave.color,
+        type: finalEventToSave.type,
+        completed: finalEventToSave.completed,
+      })
+      .eq("id", finalEventToSave.id);
 
-      // Đồng bộ task_collaborators:
-      // 1) Xóa các bản ghi cũ của task
-      const { error: delError } = await supabase.from("task_collaborators").delete().eq("task_id", editingEvent.id);
-      if (delError) {
-        console.error("Không xóa được collaborators cũ:", delError);
-        // không return; cố gắng tiếp tục insert mới
-      }
-
-      // 2) Insert các collaborators mới (nếu visibility === PUBLIC)
-      if (editingEvent.visibility === "PUBLIC" && localCollaborators.length > 0) {
-        const payload = localCollaborators.map((uid) => ({
-          task_id: editingEvent.id,
-          user_id: uid,
-          role: "EDITOR",
-        }));
-        const { error: insError } = await supabase.from("task_collaborators").insert(payload);
-        if (insError) {
-          console.error("Lỗi khi insert collaborators:", insError);
-        }
-      }
-
-      // 3) Load collaborators detail mới (để cập nhật state)
-      // Lấy rows collaborators
-      const { data: collabRows } = await supabase
-        .from("task_collaborators")
-        .select("user_id, role")
-        .eq("task_id", editingEvent.id);
-
-      let collaborators = [];
-      if (collabRows && collabRows.length > 0) {
-        const userIds = collabRows.map((r: any) => r.user_id);
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("id, username, email, avatar_url")
-          .in("id", userIds);
-
-        const profMap = (profilesData || []).reduce((acc: any, p: any) => { acc[p.id] = p; return acc; }, {});
-        collaborators = collabRows.map((r: any) => ({ user_id: r.user_id, role: r.role, profile: profMap[r.user_id] || null }));
-      }
-
-      const finalEventToSave = {
-        ...editingEvent,
-        start: startDate,
-        end: endDate,
-        collaborators,
-      };
-
-      // Cập nhật events ở parent
-      setEvents((prev) => prev.map(ev => ev.id === finalEventToSave.id ? finalEventToSave : ev));
-
-      // Logic cộng điểm giống bạn (không đổi)
-      const originalEvent = events.find((ev) => ev.id === finalEventToSave.id);
-      const wasCompleted = originalEvent ? originalEvent.completed : false;
-      const now = new Date();
-      if (finalEventToSave.completed && !wasCompleted && finalEventToSave.end <= now) {
-        setPoints((prev) => prev + 10);
-      }
-
-      setShowModal(false);
-    } catch (err) {
-      console.error("Lỗi khi lưu edit modal:", err);
-      alert("Lưu thất bại, kiểm tra console.");
+    if (error) {
+      console.error("Lỗi khi cập nhật công việc:", error);
+      alert("Lưu thay đổi thất bại. Vui lòng kiểm tra console.");
+      return;
     }
+
+    // Cập nhật lại danh sách sự kiện ở component cha
+    setEvents((prev) =>
+      prev.map((ev) => (ev.id === finalEventToSave.id ? finalEventToSave : ev))
+    );
+
+    // Logic cộng điểm
+    const now = new Date();
+    const isNowCompleted = finalEventToSave.completed;
+    // Chỉ cộng điểm khi: công việc vừa được chuyển sang 'hoàn thành' VÀ hoàn thành đúng giờ.
+    if (isNowCompleted && !wasCompleted && finalEventToSave.end <= now) {
+      setPoints((prev) => prev + 10);
+    }
+
+    setShowModal(false);
   };
 
+  // Tránh lỗi nếu editingEvent là null
   if (!editingEvent) return null;
 
+  // Hàm hỗ trợ định dạng ngày giờ cho input type="datetime-local"
   const formatDateTimeLocal = (date: string | Date | undefined) => {
     if (!date) return "";
     const d = new Date(date);
+    // Điều chỉnh múi giờ trước khi cắt chuỗi để hiển thị đúng trên input
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().slice(0, 16);
   };
@@ -1046,27 +704,56 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
       <h3>Edit Task</h3>
       <label>
         Title:
-        <input type="text" name="title" value={editingEvent.title} onChange={handleChange} />
+        <input
+          type="text"
+          name="title" // Thêm thuộc tính 'name'
+          value={editingEvent.title} // Lấy giá trị từ 'editingEvent'
+          onChange={handleChange} // Dùng hàm xử lý chung
+        />
       </label>
       <label>
         Description:
-        <input type="text" name="description" value={editingEvent.description || ""} onChange={handleChange} />
+        <input
+          type="text"
+          name="description" // Thêm thuộc tính 'name'
+          value={editingEvent.description || ""} // Lấy giá trị từ 'editingEvent'
+          onChange={handleChange}
+        />
       </label>
       <label>
         Start:
-        <input type="datetime-local" name="start" value={formatDateTimeLocal(editingEvent.start)} onChange={handleChange} />
+        <input
+          type="datetime-local"
+          name="start" // Thêm thuộc tính 'name'
+          value={formatDateTimeLocal(editingEvent.start)} // Dùng hàm định dạng ngày giờ
+          onChange={handleChange}
+        />
       </label>
       <label>
         End:
-        <input type="datetime-local" name="end" value={formatDateTimeLocal(editingEvent.end)} onChange={handleChange} />
+        <input
+          type="datetime-local"
+          name="end" // Thêm thuộc tính 'name'
+          value={formatDateTimeLocal(editingEvent.end)} // Dùng hàm định dạng ngày giờ
+          onChange={handleChange}
+        />
       </label>
       <label>
         Color:
-        <input type="color" name="color" value={editingEvent.color} onChange={handleChange} />
+        <input
+          type="color"
+          name="color" // Thêm thuộc tính 'name'
+          value={editingEvent.color}
+          onChange={handleChange}
+        />
       </label>
       <label>
         Type:
-        <select name="type" value={editingEvent.type} onChange={handleChange}>
+        <select
+          name="type" // Thêm thuộc tính 'name'
+          value={editingEvent.type}
+          onChange={handleChange}
+        >
           <option value="work">Công việc</option>
           <option value="study">Học tập</option>
           <option value="outdoor">Ngoài trời</option>
@@ -1074,42 +761,17 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
           <option value="other">Khác</option>
         </select>
       </label>
-
-      <div style={{ marginTop: 10 }}>
-        <strong>Visibility:</strong>
-        <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-          <button onClick={() => setEditingEvent((p: any) => ({ ...p, visibility: "PRIVATE" }))} className={editingEvent.visibility === "PRIVATE" ? styles.save : styles.cancel}>🔒 Cá nhân</button>
-          <button onClick={() => setEditingEvent((p: any) => ({ ...p, visibility: "PUBLIC" }))} className={editingEvent.visibility === "PUBLIC" ? styles.save : styles.cancel}>👥 Hợp tác</button>
-        </div>
-      </div>
-
-      {/* Collaborators chooser */}
-      {editingEvent.visibility === "PUBLIC" && (
-        <div style={{ marginTop: 12, border: "1px dashed #ccc", padding: 8, borderRadius: 6 }}>
-          <label style={{ fontWeight: "bold" }}>Collaborators</label>
-          <div style={{ maxHeight: 120, overflowY: "auto", marginTop: 6 }}>
-            {friendsList.length === 0 && <div style={{ color: "#666" }}>Bạn chưa có bạn bè trong danh sách</div>}
-            {friendsList.map((f: any) => (
-              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <input
-                  type="checkbox"
-                  checked={localCollaborators.includes(f.id)}
-                  onChange={() => toggleCollaborator(f.id)}
-                />
-                <span>{f.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <label className={styles.checkboxLabel}>
+      <label className={styles.checkboxLabel}> 
         Completed:
-        <div className={styles.checkboxWrapper}>
-          <input type="checkbox" name="completed" checked={!!editingEvent.completed} onChange={handleChange} />
-        </div>
+        <div className={styles.checkboxWrapper}> {/* 🔥 WRAPPER MỚI */}
+        <input
+            type="checkbox"
+            name="completed"
+            checked={!!editingEvent.completed}
+            onChange={handleChange}
+        />
+    </div>
       </label>
-
       <div className={styles.buttonGroup}>
         <button className={styles.saveBtn} onClick={handleSave}>Save</button>
         <button className={styles.deleteBtn} onClick={handleDelete}>Delete</button>
