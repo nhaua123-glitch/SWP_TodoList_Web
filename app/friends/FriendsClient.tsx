@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import "./friends.css";
 
 
@@ -17,12 +16,56 @@ export default function FriendsClient({ user, supabase }: Props) {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMsg, setInviteMsg] = useState("");
   const [profilesMap, setProfilesMap] = useState<Record<string, any>>({});
+  const [onlineIds, setOnlineIds] = useState<string[]>([]);
+  const [statusMap, setStatusMap] = useState<Record<string, { status: string; last_seen: string }>>({});
 
   useEffect(() => {
     if (user?.id) {
       fetchFriends();
     }
   }, [user, supabase]); // Thêm supabase vào dependency array cho an toàn
+
+  useEffect(() => {
+    let mounted = true;
+    const poll = async () => {
+      try {
+        // Lấy danh sách ID bạn bè đã accepted
+        const ids: string[] = friends
+          .map((f: any) => (f.sender_id === user.id ? f.receiver_id : f.sender_id))
+          .filter((id: string) => !!id);
+        if (ids.length === 0) {
+          if (mounted) {
+            setOnlineIds([]);
+            setStatusMap({});
+          }
+          return;
+        }
+        const res = await fetch("/api/public/users/status-by-ids", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids }),
+        });
+        if (!res.ok) return;
+        const { data } = await res.json();
+        const map: Record<string, { status: string; last_seen: string }> = {};
+        const online: string[] = [];
+        (data || []).forEach((u: any) => {
+          map[u.user_id] = { status: u.status, last_seen: u.last_seen };
+          if (u.status === "online") online.push(u.user_id);
+        });
+        if (mounted) {
+          setStatusMap(map);
+          setOnlineIds(online);
+        }
+      } catch (_) {}
+    };
+    poll();
+    const id = setInterval(poll, 5000);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, [friends, user?.id]);
 
   // ✅ Lấy toàn bộ bạn bè & lời mời
   const fetchFriends = async () => {
@@ -51,8 +94,8 @@ export default function FriendsClient({ user, supabase }: Props) {
     const ids = Array.from(
       new Set(
         data
-          .flatMap((f) => [f.sender_id, f.receiver_id])
-          .filter((id) => id && id !== user.id)
+          .flatMap((f: any) => [f.sender_id, f.receiver_id])
+          .filter((id: string) => id && id !== user.id)
       )
     );
 
@@ -77,38 +120,20 @@ export default function FriendsClient({ user, supabase }: Props) {
     e.preventDefault();
     setInviteMsg("");
 
-    const trimmedEmail = inviteEmail.trim();
-
-    if (!trimmedEmail)
+    if (!inviteEmail)
       return setInviteMsg("⚠️ Vui lòng nhập email bạn bè.");
-    if (trimmedEmail.toLowerCase() === (user.email || "").toLowerCase())
+    if (inviteEmail === user.email)
       return setInviteMsg("⚠️ Không thể gửi cho chính mình.");
 
-    try {
-      setInviteMsg("⏳ Đang gửi lời mời...");
+    const { data: receiverProfile, error: findError } = await supabase
+      .from("profiles")
+      .select("id, email")
+      .ilike("email", inviteEmail.trim())
+      .maybeSingle();
 
-      const res = await fetch("/api/private/friends/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toEmail: trimmedEmail }),
-      });
-
-      const payload = await res
-        .json()
-        .catch(() => ({ error: "Không đọc được phản hồi từ server." }));
-
-      if (!res.ok || payload?.error) {
-        console.error("Invite send error:", payload?.error);
-        setInviteMsg(`❌ ${payload?.error || "Gửi lời mời thất bại."}`);
-        return;
-      }
-
-      setInviteMsg("✅ Lời mời đã được gửi thành công!");
-      setInviteEmail("");
-      fetchFriends();
-    } catch (err) {
-      console.error("Invite send exception:", err);
-      setInviteMsg("❌ Có lỗi khi gửi lời mời. Vui lòng thử lại.");
+    if (findError) {
+      console.error("Find user error:", findError);
+      return setInviteMsg("❌ Lỗi khi tìm người dùng.");
     }
   };
 
@@ -127,100 +152,90 @@ export default function FriendsClient({ user, supabase }: Props) {
     fetchFriends();
   };
 
-  // 💡 5. LỖI CÚ PHÁP LÀ Ở ĐÂY:
-  // Lệnh "return" phải nằm BÊN TRONG hàm "FriendsClient"
   return (
-    <div className="friends-scope"> 
-      <div className="friends-container">
-        <div style={{ marginBottom: 12 }}>
-          <Link href="/calendar">
-            <button type="button" className="backBtn" title="Back to Calendar">
-              ← Back to Calendar
-            </button>
-          </Link>
-        </div>
-        <h2>🌸 Bạn bè của tôi</h2>
+    <div className="friends-container">
+      <h2>👥 Bạn bè của tôi</h2>
 
-        {/* Form gửi lời mời */}
-        <form onSubmit={handleInvite}>
-          <input
-            type="email"
-            placeholder="Nhập email bạn bè"
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
-          />
-          <button type="submit">Gửi</button>
-        </form>
-        {inviteMsg && <p>{inviteMsg}</p>}
+      {/* Form gửi lời mời */}
+      <form onSubmit={handleInvite}>
+        <input
+          type="email"
+          placeholder="Nhập email bạn bè"
+          value={inviteEmail}
+          onChange={(e) => setInviteEmail(e.target.value)}
+        />
+        <button type="submit">Gửi</button>
+      </form>
+      {inviteMsg && <p>{inviteMsg}</p>}
 
-        {/* Lời mời đến */}
-        <h3>📥 Lời mời đang chờ</h3>
-        {pendingReceived.length === 0 ? (
-          <p>Không có lời mời nào.</p>
-        ) : (
-          pendingReceived.map((p) => (
-            <div key={p.id} className="friend-item">
-              <div className="friend-info">
-                <span className="friend-icon pending">💌</span>
-                <span className="friend-email">{profilesMap[p.sender_id]?.email || p.sender_email || p.sender_id}</span>
-              </div>
+      {/* Lời mời đến */}
+      <h3>📥 Lời mời đang chờ</h3>
+      {pendingReceived.length === 0 ? (
+        <p>Không có lời mời nào.</p>
+      ) : (
+        pendingReceived.map((p) => (
+          <div key={p.id} className="friend-item">
+            <span>{profilesMap[p.sender_id]?.email || p.sender_email || p.sender_id}</span>
+            <div>
+              <button
+                className="accept"
+                onClick={() => updateStatus(p.id, "accepted")}
+              >
+                ✅
+              </button>
+              <button
+                className="reject"
+                onClick={() => updateStatus(p.id, "rejected")}
+              >
+                ❌
+              </button>
+            </div>
+          </div>
+        ))
+      )}
+
+      {/* Lời mời đã gửi */}
+      <h3>⏳ Lời mời đã gửi</h3>
+      {pendingSent.length === 0 ? (
+        <p>Không có lời mời đã gửi.</p>
+      ) : (
+        pendingSent.map((p) => (
+          <div key={p.id} className="friend-item">
+            <span>{profilesMap[p.receiver_id]?.email || p.receiver_email || p.receiver_id}</span>
+            <div>
+              <button onClick={() => deleteFriend(p.id)}>🕓 Hủy</button>
+            </div>
+          </div>
+        ))
+      )}
+
+      {/* Danh sách bạn bè */}
+      <h3>✅ Danh sách bạn bè</h3>
+      {friends.length === 0 ? (
+        <p>Bạn chưa có bạn bè nào.</p>
+      ) : (
+        friends.map((f) => {
+          const friendId = f.sender_id === user.id ? f.receiver_id : f.sender_id;
+          return (
+            <div key={f.id} className="friend-item">
+              <span>
+                {onlineIds.includes(friendId) && (
+                  <span style={{ color: "green", marginRight: 6 }}>●</span>
+                )}
+                {profilesMap[friendId]?.email || f.receiver_email || f.sender_email || friendId}
+                {!onlineIds.includes(friendId) && statusMap[friendId]?.last_seen && (
+                  <span style={{ marginLeft: 8, color: "#6b7280", fontSize: 12 }}>
+                    (Hoạt động gần đây: {new Date(statusMap[friendId].last_seen).toLocaleString()})
+                  </span>
+                )}
+              </span>
               <div>
-                <button
-                  className="accept"
-                  onClick={() => updateStatus(p.id, "accepted")}
-                >
-                  ✅
-                </button>
-                <button
-                  className="reject"
-                  onClick={() => updateStatus(p.id, "rejected")}
-                >
-                  ❌
-                </button>
+                <button onClick={() => deleteFriend(f.id)}>🗑</button>
               </div>
             </div>
-          ))
-        )}
-
-        {/* Lời mời đã gửi */}
-        <h3>⏳ Lời mời đã gửi</h3>
-        {pendingSent.length === 0 ? (
-          <p>Không có lời mời đã gửi.</p>
-        ) : (
-          pendingSent.map((p) => (
-            <div key={p.id} className="friend-item">
-              <div className="friend-info">
-                <span className="friend-icon sent">📤</span>
-                <span className="friend-email">{profilesMap[p.receiver_id]?.email || p.receiver_email || p.receiver_id}</span>
-              </div>
-              <div>
-                <button onClick={() => deleteFriend(p.id)}>🕓 Hủy</button>
-              </div>
-            </div>
-          ))
-        )}
-
-        {/* Danh sách bạn bè */}
-        <h3>✅ Danh sách bạn bè</h3>
-        {friends.length === 0 ? (
-          <p>Bạn chưa có bạn bè nào.</p>
-        ) : (
-          friends.map((f) => {
-            const friendId = f.sender_id === user.id ? f.receiver_id : f.sender_id;
-            return (
-              <div key={f.id} className="friend-item">
-                <div className="friend-info">
-                  <span className="friend-icon accepted">🌟</span>
-                  <span className="friend-email">{profilesMap[friendId]?.email || f.receiver_email || f.sender_email || friendId}</span>
-                </div>
-                <div>
-                  <button onClick={() => deleteFriend(f.id)}>🗑</button>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-      </div>
+          );
+        })
+      )}
+    </div>
   );
-} 
+}

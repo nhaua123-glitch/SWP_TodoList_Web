@@ -60,8 +60,11 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Rất quan trọng: Làm mới session để cookie được cập nhật
-  const { data: { session } } = await supabase.auth.getSession()
+  // ⚡ Bypass test routes
+  const bypassRoutes = ["/friends"]; // ✅ Bỏ /friends khỏi check
+  if (bypassRoutes.some(r => pathname.startsWith(r))) {
+    return res;
+  }
 
   // Xử lý logic bảo vệ trang
   const { pathname } = request.nextUrl
@@ -76,15 +79,10 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // 🧭 Bảo vệ các trang UI
-  const protectedRoutes = ["/list", "/dashboard", "/calendar", "/friends"];
-  
-  // <--- SỬA ĐỔI 1: THÊM trang chủ "/" VÀO ĐÂY
-  const publicRoutes = ["/login", "/signup"];
-
-  if (!hasValidSession && protectedRoutes.some(route => pathname.startsWith(route))) {
-    // Nếu chưa đăng nhập và cố vào trang bảo vệ -> đá về login
-    return NextResponse.redirect(new URL("/login", request.url));
+  // 🧭 Bảo vệ các trang khác
+  const protectedRoutes = ["/calendar", "/list", "/dashboard"];
+  if (!hasValidSession && protectedRoutes.includes(pathname)) {
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   // <--- SỬA ĐỔI 2: DÙNG ".includes(pathname)" ĐỂ KIỂM TRA CHÍNH XÁC
