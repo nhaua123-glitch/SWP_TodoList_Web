@@ -1,6 +1,6 @@
 // app/api/auth/logout/route.ts
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -13,7 +13,23 @@ export async function POST(request: NextRequest) {
 
   // 2. Tạo một Supabase client ĐẶC BIỆT
   // client này có thể đọc và ghi cookies
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const supabase = createServerClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    cookies: {
+      async get(name: string) {
+        return (await cookieStore).get(name)?.value
+      },
+      async set(name: string, value: string, options) {
+        (await cookieStore).set({ name, value, ...options })
+      },
+      async remove(name: string, options) {
+        (await cookieStore).set({ name, value: '', ...options })
+      },
+    },
+  }
+)
 
   // 3. Gọi signOut()
   // Hàm này sẽ tự động tìm session từ cookie và xóa nó

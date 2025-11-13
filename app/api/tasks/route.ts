@@ -1,12 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 
 // GET - Lấy tasks (có thể filter theo user_id)
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
+      },
+      set(name: string, value: string, options: CookieOptions) { // <-- Đã sửa
+        cookieStore.set({ name, value, ...options })
+      },
+      remove(name: string, options: CookieOptions) { // <-- Đã sửa
+        cookieStore.set({ name, value: '', ...options })
+      },
+    },
+      }
+    )
 
     // Lấy user từ cookie session
     const { data: { user } } = await supabase.auth.getUser()
