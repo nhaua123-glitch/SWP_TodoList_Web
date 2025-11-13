@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
     },
   })
 
-  // ... (Phần code tạo client của bạn giữ nguyên) ...
+  // Code tạo client (Giữ nguyên)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -36,14 +36,14 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // ⭐️ SỬA ĐỔI 1: Dùng getUser() thay vì getSession() (an toàn hơn)
+  // ⭐️ SỬA ĐỔI 1: Dùng getUser() (an toàn hơn)
   const { data: { session } } = await supabase.auth.getUser()
 
-  // Xử lý logic bảo vệ trang
+  // Xử lý logic
   const { pathname } = request.nextUrl
   const hasValidSession = !!session;
 
-  // 🧱 Bảo vệ API private
+  // Bảo vệ API
   if (pathname.startsWith("/api/private")) {
     if (!hasValidSession) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -51,27 +51,26 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // 🧭 Bảo vệ các trang UI
+  // ⭐️ SỬA ĐỔI 2: ĐỊNH NGHĨA ROUTE CHÍNH XÁC
   const protectedRoutes = ["/list", "/dashboard", "/calendar", "/friends"];
-  
-  // ⭐️ SỬA ĐỔI 2: THÊM trang chủ "/" VÀO ĐÂY
   const publicRoutes = ["/login", "/signup", "/"]; // Thêm "/" vào đây
 
+  // Chuyển hướng nếu chưa đăng nhập
   if (!hasValidSession && protectedRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // ⭐️ SỬA ĐỔI 3: DÙNG "includes(pathname)" (so sánh chính xác)
   if (hasValidSession && publicRoutes.includes(pathname)) {
-    // Nếu đã đăng nhập và cố vào login/signup/trang chủ -> đá về trang chính
+    // Nếu đã đăng nhập và vào trang public -> đá về trang chính
     return NextResponse.redirect(new URL("/calendar", request.url));
   }
 
-  // Cho phép tất cả các trường hợp còn lại
+  // Cho phép đi tiếp
   return response
 }
 
-// ⚙️ Config middleware (Giữ nguyên)
+// Config middleware (Giữ nguyên)
 export const config = {
   matcher: [
     "/((?!api/public|_next/static|_next/image|favicon.ico).*)",
