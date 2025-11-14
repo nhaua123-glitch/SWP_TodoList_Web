@@ -1,6 +1,3 @@
-// File: app/calendar/page.tsx
-// HÃY COPY VÀ DÁN TOÀN BỘ CODE NÀY
-
 "use client";
 
 import { useState, useEffect, useRef, ChangeEvent } from "react";
@@ -16,7 +13,7 @@ import WidgetTimer from "../components/widgettimer";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import { createBrowserClient } from '@supabase/ssr'
-import type { Session } from '@supabase/supabase-js'; // <--- SỬA ĐỔI 1: THÊM IMPORT SESSION
+import type { Session } from '@supabase/supabase-js'; 
 
 // ===================================
 
@@ -121,16 +118,21 @@ export default function Home() {
       .select("task_id, user_id, role")
       .in("task_id", taskIds);
     if (collabError) console.error("Lỗi lấy task_collaborators:", collabError);
-    const collaboratorUserIds = Array.from(new Set((collabRows || []).map((r: any) => r.user_id)));
+    // 1. Lấy ID của collaborators
+    const collaboratorUserIds = (collabRows || []).map((r: any) => r.user_id);
+    const ownerUserIds = tasksData.map((t: any) => t.user_id);
+    const allUserIds = Array.from(new Set([...collaboratorUserIds, ...ownerUserIds]));
+
     let profilesMap: Record<string, any> = {};
-    if (collaboratorUserIds.length > 0) {
+    if (allUserIds.length > 0) { // <-- Dùng mảng allUserIds
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("id, username, email, avatar_url")
-        .in("id", collaboratorUserIds);
-      if (profilesError) console.error("Lỗi lấy profiles của collaborators:", profilesError);
+        .in("id", allUserIds); // <-- Dùng mảng allUserIds
+      if (profilesError) console.error("Lỗi lấy profiles:", profilesError);
       else if (profilesData) profilesMap = profilesData.reduce((acc: any, p: any) => { acc[p.id] = p; return acc; }, {});
     }
+
     const formatted = tasksData.map((task: any) => {
       const taskCollabs = (collabRows || []).filter((c: any) => c.task_id === task.id);
       const collaborators = taskCollabs.map((c: any) => ({
@@ -138,7 +140,8 @@ export default function Home() {
         role: c.role,
         profile: profilesMap[c.user_id] || null,
       }));
-      return { ...task, start: new Date(task.start_time), end: new Date(task.end_time), collaborators, };
+      const ownerProfile = profilesMap[task.user_id] || null;
+      return { ...task, start: new Date(task.start_time), end: new Date(task.end_time), collaborators, ownerProfile};
     });
     setEvents(formatted);
     setLoading(false);
@@ -176,7 +179,8 @@ export default function Home() {
     if (profilesData) {
       const formattedFriends = profilesData.map((u: any) => ({
         id: u.id,
-        name: u.username || u.email || "Bạn ẩn danh"
+        name: u.username || u.email || "Bạn ẩn danh",
+        avatar_url: u.avatar_url || null ,
       }));
       setFriendsList(formattedFriends);
     }
@@ -184,7 +188,6 @@ export default function Home() {
 
 
   const handleAddTask = async () => {
-    // ... (Code handleAddTask của bạn giữ nguyên)
     if (!newTask.title || !newTask.start || !newTask.end)
       return alert("Vui lòng điền đủ thông tin!");
     try {
@@ -208,16 +211,19 @@ export default function Home() {
         .select()
         .single();
       if (taskError) throw taskError;
+
       const newTaskId = taskData.id;
       const promises: Promise<any>[] = [];
+
       if (newTask.visibility === "PUBLIC" && newTask.collaborators?.length > 0) {
         const collaboratorsPayload = newTask.collaborators.map((friendId: string) => ({
           task_id: newTaskId,
           user_id: friendId,
-          role: "EDITOR",
+          role: (newTask.collaboratorRoles && newTask.collaboratorRoles[friendId]) || "VIEWER", 
         }));
-        promises.push(Promise.resolve(supabase.from("task_collaborators").insert(collaboratorsPayload).select() as any) as Promise<any>);
+        promises.push(supabase.from("task_collaborators").insert(collaboratorsPayload) as any);
       }
+
       if (newTask.subtasks?.length > 0) {
         const subtasksPayload = newTask.subtasks.map((st: any) => ({
           task_id: newTaskId,
@@ -225,7 +231,7 @@ export default function Home() {
           assignee_id: st.assignee_id || user.id,
           is_completed: false,
         }));
-        promises.push(Promise.resolve(supabase.from("subtasks").insert(subtasksPayload).select() as any) as Promise<any>);
+        promises.push(supabase.from("subtasks").insert(subtasksPayload) as any);
       }
       await Promise.all(promises);
       const addedEvent = {
@@ -237,6 +243,7 @@ export default function Home() {
       setNewTask({
         title: "", description: "", start: "", end: "", color: "#3174ad",
         type: "work", visibility: "PRIVATE", collaborators: [], subtasks: [],
+        collaboratorRoles: {},
       });
     } catch (error) {
       console.error("❌ Lỗi khi tạo task:", error);
@@ -270,7 +277,13 @@ export default function Home() {
 
 
   const handleEventDrop = async ({ event, start, end, isAllDay }: any) => {
-    // ... (Code của bạn giữ nguyên)
+    // kiếm tra xem currentUser có phải là chủ sở hữu của event không
+    if (!currentUser || event.user_id !== currentUser.id) {
+      alert("Chỉ chủ sở hữu mới có thể thay đổi thời gian của task!");
+      // Dừng hàm lại, không cập nhật state và không gọi Supabase
+      // Giao diện calendar sẽ tự động snap event về vị trí cũ
+      return; 
+    }
     const updatedEvents = events.map((existingEvent) =>
       existingEvent.id === event.id ? { ...existingEvent, start, end, isAllDay } : existingEvent
     );
@@ -342,7 +355,6 @@ export default function Home() {
 
   return (
     <div className={styles.page}>
-      <PointsBar points={points} />
 
       <div style={{ margin: "20px 0", textAlign: "center" }}>
         <Link href="/friends">
@@ -435,9 +447,17 @@ export default function Home() {
               supabase={supabase}
               friendsList={friendsList}
               currentUser={currentUser}
+              myUsername={myUsername}
+              myAvatarUrl={myAvatarUrl}
             />
           ) : hoveredEvent ? (
-            <TaskDetailsView event={hoveredEvent} />
+            <TaskDetailsView 
+              event={hoveredEvent}
+              supabase={supabase}    
+              currentUser={currentUser}
+              myUsername={myUsername}
+              myAvatarUrl={myAvatarUrl}
+              />
           ) : (
             <AddTaskForm
               newTask={newTask}
@@ -640,43 +660,65 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
   }
 
 
-// ... (Các component AddTaskForm, TaskDetailsView, PointsBar, EditModal giữ nguyên) ...
-// (Mình sẽ bỏ qua chúng để cho ngắn gọn, bạn không cần thay đổi gì ở chúng)
-
-// 💡 TẠO COMPONENT MỚI ĐỂ XEM CHI TIẾT
-function TaskDetailsView({ event }: { event: any }) {
+function TaskDetailsView({ event, supabase, currentUser, myUsername, myAvatarUrl }: { event: any, supabase: any, currentUser: any, myUsername: string, myAvatarUrl: string }) {
   const taskTypeIcons = { work: "💼", study: "📚", outdoor: "🌳", personal: "🧘", other: "🔹" };
 
   return (
     <div className={styles.taskDetailsView}>
       <h3>Task Details</h3>
       <h4>{taskTypeIcons[event.type as keyof typeof taskTypeIcons] || "🔹"} {event.title}</h4>
-      <p><strong>Bắt đầu:</strong> {new Date(event.start).toLocaleString()}</p>
-      <p><strong>Kết thúc:</strong> {new Date(event.end).toLocaleString()}</p>
-      <p><strong>Mô tả:</strong></p>
-      <p className={styles.taskDescription}>{event.description || "Không có mô tả."}</p>
+      <p><strong>Start:</strong> {new Date(event.start).toLocaleString()}</p>
+      <p><strong>End:</strong> {new Date(event.end).toLocaleString()}</p>
+      <p><strong>Description:</strong></p>
+      <p className={styles.taskDescription}>{event.description || "No description available."}</p>
 
       <div style={{ marginTop: 10 }}>
-        <strong>Collaborators:</strong>
-        {event.collaborators && event.collaborators.length > 0 ? (
-          <ul style={{ paddingLeft: 16, marginTop: 6 }}>
-            {event.collaborators.map((c: any) => (
-              <li key={c.user_id} style={{ marginBottom: 6 }}>
-                <span style={{ marginRight: 8 }}>
-                  {c.profile?.username || c.profile?.email || "Bạn ẩn danh"}
-                </span>
-                <small style={{ color: "#666" }}>{c.role ? `(${c.role})` : ""}</small>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div style={{ marginTop: 6, color: "#666" }}>Không có cộng tác viên</div>
-        )}
+        <p><strong>Owner:</strong></p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px' }}>
+          <img 
+            src={event.ownerProfile?.avatar_url || 'https://placehold.co/24x24?text=O'} 
+            alt={event.ownerProfile?.username || 'Owner'}
+            style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
+          />
+          <span style={{ fontWeight: 500 }}>
+            {event.ownerProfile?.username || 'Chủ sở hữu ẩn danh'}
+          </span>
+        </div>
       </div>
 
-      <p className={styles.viewNote}>
-        Nhấn vào công việc để chỉnh sửa.
-      </p>
+      <div style={{ marginTop: 10 }}>
+              <p><strong>Collaborators:</strong></p>
+              {event.collaborators && event.collaborators.length > 0 ? (
+                <ul style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px' }}>
+                  {event.collaborators.map((c: any) => (
+                    <li key={c.user_id} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <img 
+                          src={c.profile?.avatar_url || 'https://placehold.co/20x20?text=C'} 
+                          alt={c.profile?.username || 'Collab'}
+                          style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                      <span>
+                        {c.profile?.username || c.profile?.email || "Bạn ẩn danh"}
+                        <small style={{ color: "#666", marginLeft: 4 }}>
+                          ({c.role === 'EDITOR' ? 'Edit' : 'View only'})
+                        </small>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No collaborators.</p>
+              )}
+        </div>
+
+      <TaskComments
+        supabase={supabase}
+        task={event}
+        currentUser={currentUser}
+        showInput={false} 
+        myUsername={myUsername}
+        myAvatarUrl={myAvatarUrl}
+      />
     </div>
   );
 }
@@ -799,14 +841,48 @@ function AddTaskForm({ newTask, setNewTask, handleAddTask,friendsList = [], curr
                   checked={newTask.collaborators?.includes(friend.id) || false}
                   onChange={(e) => {
                     const currentCollaborators = newTask.collaborators || [];
+                    const currentRoles = newTask.collaboratorRoles || {};
+
                     if (e.target.checked) {
-                      setNewTask({ ...newTask, collaborators: [...currentCollaborators, friend.id] });
+                      // Thêm bạn
+                      setNewTask({ 
+                        ...newTask, 
+                        collaborators: [...currentCollaborators, friend.id],
+                        collaboratorRoles: { ...currentRoles, [friend.id]: 'VIEWER' } // Mặc định là VIEWER
+                      });
                     } else {
-                      setNewTask({ ...newTask, collaborators: currentCollaborators.filter((id: string) => id !== friend.id) });
+                      // Xóa bạn
+                      const newRoles = { ...currentRoles };
+                      delete newRoles[friend.id]; // Xóa role của bạn
+                      setNewTask({ 
+                        ...newTask, 
+                        collaborators: currentCollaborators.filter((id: string) => id !== friend.id),
+                        collaboratorRoles: newRoles
+                      });
                     }
                   }}
                 />
                 <label htmlFor={`friend-${friend.id}`} style={{ cursor: 'pointer' }}>{friend.name}</label>
+                
+                {/* Dropdown chọn Role (THÊM MỚI) */}
+                {newTask.collaborators?.includes(friend.id) && (
+                  <select
+                    value={newTask.collaboratorRoles?.[friend.id] || 'VIEWER'}
+                    onChange={(e) => {
+                      setNewTask({
+                        ...newTask,
+                        collaboratorRoles: {
+                          ...(newTask.collaboratorRoles || {}),
+                          [friend.id]: e.target.value,
+                        },
+                      });
+                    }}
+                    style={{ marginLeft: 'auto', fontSize: '10px', padding: '2px', borderRadius: '4px' }}
+                  >
+                    <option value="VIEWER">Chỉ xem</option>
+                    <option value="EDITOR">Chỉnh sửa</option>
+                  </select>
+                )}
               </div>
             ))}
           </div>
@@ -862,23 +938,7 @@ function AddTaskForm({ newTask, setNewTask, handleAddTask,friendsList = [], curr
   );
 }
 
-function PointsBar({ points }: { points: number }) {
-  return (
-    <div style={{ margin: "20px auto", maxWidth: "400px", textAlign: "center" }}>
-      <div style={{ fontWeight: "bold", marginBottom: "5px" }}>Points: {points}</div>
-      <div style={{ background: "#ecdfdf", borderRadius: "6px", height: "20px", overflow: "hidden" }}>
-        <div
-          style={{
-            width: `${Math.min(points, 100)}%`,
-            background: "#8adb8d",
-            height: "100%",
-            transition: "width 0.3s",
-          }}
-        />
-      </div>
-    </div>
-  );
-}
+
 
 
 
@@ -902,15 +962,45 @@ interface EditModalProps {
   events: Task[];
 }
 
-function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, supabase, friendsList = [], currentUser }: EditModalProps & { supabase: any, friendsList?: any[], currentUser?: any }) {
+function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, supabase, friendsList = [], currentUser, myUsername, myAvatarUrl }: EditModalProps & { supabase: any, friendsList?: any[], currentUser?: any, myUsername: string, myAvatarUrl: string }) {  
   const [editingEvent, setEditingEvent] = useState<any>(selectedEvent);
-  const [localCollaborators, setLocalCollaborators] = useState<string[]>([]); // mảng user_id string
+  const [localCollabRoles, setLocalCollabRoles] = useState<Record<string, string>>({});
+
+  const getMyRole = () => {
+    if (!currentUser || !editingEvent) return 'NONE';
+    
+    // 1. Tôi là chủ task
+    if (editingEvent.user_id === currentUser.id) {
+      return 'OWNER';
+    }
+    
+    // 2. Tìm tôi trong danh sách collaborators
+    const myCollabInfo = (editingEvent.collaborators || []).find(
+      (c: any) => c.user_id === currentUser.id
+    );
+
+    if (myCollabInfo) {
+      return myCollabInfo.role; // (VD: 'EDITOR' hoặc 'VIEWER')
+    }
+    
+    // 3. Tôi không liên quan
+    return 'NONE'; 
+  };
+
+  const myRole = getMyRole();
+  
+  // Tạo các biến cờ để code dễ đọc
+  const canEdit = (myRole === 'OWNER' || myRole === 'EDITOR');
+  const isOwner = (myRole === 'OWNER');
 
   useEffect(() => {
     setEditingEvent(selectedEvent);
     // Init local collaborators from selectedEvent.collaborators (mảng object)
-    const init = (selectedEvent?.collaborators || []).map((c: any) => c.user_id);
-    setLocalCollaborators(init);
+    const initRoles = (selectedEvent?.collaborators || []).reduce((acc: any, c: any) => {
+      acc[c.user_id] = c.role; // { 'user-id': 'EDITOR' }
+      return acc;
+    }, {});
+    setLocalCollabRoles(initRoles);
   }, [selectedEvent]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -922,7 +1012,24 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
   };
 
   const toggleCollaborator = (userId: string) => {
-    setLocalCollaborators(prev => prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]);
+    setLocalCollabRoles(prev => {
+      const newRoles = { ...prev };
+      if (newRoles[userId]) {
+        // Nếu đã có -> Xóa
+        delete newRoles[userId];
+      } else {
+        // Nếu chưa có -> Thêm (mặc định là VIEWER)
+        newRoles[userId] = 'VIEWER'; 
+      }
+      return newRoles;
+    });
+  };
+
+  const updateCollaboratorRole = (userId: string, role: string) => {
+      setLocalCollabRoles(prev => ({
+        ...prev,
+        [userId]: role,
+      }));
   };
 
   const handleDelete = async () => {
@@ -967,29 +1074,26 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
         return;
       }
 
-      // Đồng bộ task_collaborators:
-      // 1) Xóa các bản ghi cũ của task
       const { error: delError } = await supabase.from("task_collaborators").delete().eq("task_id", editingEvent.id);
       if (delError) {
         console.error("Không xóa được collaborators cũ:", delError);
-        // không return; cố gắng tiếp tục insert mới
       }
 
-      // 2) Insert các collaborators mới (nếu visibility === PUBLIC)
-      if (editingEvent.visibility === "PUBLIC" && localCollaborators.length > 0) {
-        const payload = localCollaborators.map((uid) => ({
+      const localCollaboratorIds = Object.keys(localCollabRoles);
+
+      if (editingEvent.visibility === "PUBLIC" && localCollaboratorIds.length > 0) {
+        const payload = localCollaboratorIds.map((uid) => ({
           task_id: editingEvent.id,
           user_id: uid,
-          role: "EDITOR",
+          role: localCollabRoles[uid] || "VIEWER", // Lấy role, nếu lỗi thì mặc định là VIEWER
         }));
+
         const { error: insError } = await supabase.from("task_collaborators").insert(payload);
         if (insError) {
           console.error("Lỗi khi insert collaborators:", insError);
         }
       }
 
-      // 3) Load collaborators detail mới (để cập nhật state)
-      // Lấy rows collaborators
       const { data: collabRows } = await supabase
         .from("task_collaborators")
         .select("user_id, role")
@@ -1012,12 +1116,13 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
         start: startDate,
         end: endDate,
         collaborators,
+        ownerProfile: editingEvent.ownerProfile // Giữ lại ownerProfile đã fetch
       };
 
       // Cập nhật events ở parent
       setEvents((prev) => prev.map(ev => ev.id === finalEventToSave.id ? finalEventToSave : ev));
 
-      // Logic cộng điểm giống bạn (không đổi)
+      // Logic cộng điểm (giữ nguyên)
       const originalEvent = events.find((ev) => ev.id === finalEventToSave.id);
       const wasCompleted = originalEvent ? originalEvent.completed : false;
       const now = new Date();
@@ -1043,78 +1148,314 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
 
   return (
     <div className={styles.editForm}>
-      <h3>Edit Task</h3>
+      <h3>{isOwner ? "Edit Task" : "View Task Details"}</h3>
+      {!isOwner && (
+        <p style={{ fontStyle: 'italic', color: '#666', fontSize: '0.9em' }}>
+          Bạn chỉ có thể xem task này vì bạn không phải là người tạo.
+        </p>
+      )}
+      <div style={{ marginTop: 12 }}>
+        <label style={{ fontWeight: "bold" }}>Owner:</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px', background: 'rgba(0,0,0,0.04)', borderRadius: '6px', marginTop: 4 }}>
+          <img 
+            src={editingEvent.ownerProfile?.avatar_url || 'https://placehold.co/32x32?text=O'} 
+            alt={editingEvent.ownerProfile?.username || 'Owner'}
+            style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
+          />
+          <span style={{ fontWeight: 500 }}>
+            {editingEvent.ownerProfile?.username || 'Chủ sở hữu ẩn danh'}
+          </span>
+        </div>
+      </div>    
+
       <label>
         Title:
-        <input type="text" name="title" value={editingEvent.title} onChange={handleChange} />
+        <input type="text" name="title" value={editingEvent.title} onChange={handleChange} disabled={!isOwner} />
       </label>
       <label>
         Description:
-        <input type="text" name="description" value={editingEvent.description || ""} onChange={handleChange} />
+        <input type="text" name="description" value={editingEvent.description || ""} onChange={handleChange} disabled={!isOwner} />
       </label>
       <label>
         Start:
-        <input type="datetime-local" name="start" value={formatDateTimeLocal(editingEvent.start)} onChange={handleChange} />
+        <input type="datetime-local" name="start" value={formatDateTimeLocal(editingEvent.start)} onChange={handleChange} disabled={!isOwner} />
       </label>
       <label>
         End:
-        <input type="datetime-local" name="end" value={formatDateTimeLocal(editingEvent.end)} onChange={handleChange} />
+        <input type="datetime-local" name="end" value={formatDateTimeLocal(editingEvent.end)} onChange={handleChange} disabled={!isOwner} />
       </label>
       <label>
         Color:
-        <input type="color" name="color" value={editingEvent.color} onChange={handleChange} />
+        <input type="color" name="color" value={editingEvent.color} onChange={handleChange} disabled={!isOwner} />
       </label>
       <label>
         Type:
-        <select name="type" value={editingEvent.type} onChange={handleChange}>
-          <option value="work">Công việc</option>
-          <option value="study">Học tập</option>
-          <option value="outdoor">Ngoài trời</option>
-          <option value="personal">Cá nhân</option>
-          <option value="other">Khác</option>
+        <select name="type" value={editingEvent.type} onChange={handleChange} disabled={!isOwner}>
+          {/* ... options ... */}
         </select>
       </label>
 
       <div style={{ marginTop: 10 }}>
-        <strong>Visibility:</strong>
+        <label style={{ fontWeight: "bold" }}>Visibility:</label>
         <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-          <button onClick={() => setEditingEvent((p: any) => ({ ...p, visibility: "PRIVATE" }))} className={editingEvent.visibility === "PRIVATE" ? styles.save : styles.cancel}>🔒 Cá nhân</button>
-          <button onClick={() => setEditingEvent((p: any) => ({ ...p, visibility: "PUBLIC" }))} className={editingEvent.visibility === "PUBLIC" ? styles.save : styles.cancel}>👥 Hợp tác</button>
+          <button onClick={() => setEditingEvent((p: any) => ({ ...p, visibility: "PRIVATE" }))} className={editingEvent.visibility === "PRIVATE" ? styles.save : styles.cancel} disabled={!isOwner}>Private</button>
+          <button onClick={() => setEditingEvent((p: any) => ({ ...p, visibility: "PUBLIC" }))} className={editingEvent.visibility === "PUBLIC" ? styles.save : styles.cancel} disabled={!isOwner}>Collaboration</button>
         </div>
       </div>
 
-      {/* Collaborators chooser */}
+      {/* Collaborators chooser (vẫn disable luôn) */}
       {editingEvent.visibility === "PUBLIC" && (
-        <div style={{ marginTop: 12, border: "1px dashed #ccc", padding: 8, borderRadius: 6 }}>
-          <label style={{ fontWeight: "bold" }}>Collaborators</label>
-          <div style={{ maxHeight: 120, overflowY: "auto", marginTop: 6 }}>
-            {friendsList.length === 0 && <div style={{ color: "#666" }}>Bạn chưa có bạn bè trong danh sách</div>}
-            {friendsList.map((f: any) => (
-              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <input
-                  type="checkbox"
-                  checked={localCollaborators.includes(f.id)}
-                  onChange={() => toggleCollaborator(f.id)}
-                />
-                <span>{f.name}</span>
-              </div>
-            ))}
+        
+        // NẾU TÔI LÀ CHỦ (OWNER) -> Tôi thấy danh sách bạn bè (friendsList)
+        isOwner ? (
+          <div style={{ marginTop: 12 }}>
+            <label style={{ fontWeight: "bold" }}>Collaborators:</label>
+            <div style={{ maxHeight: 120, overflowY: "auto", marginTop: 6, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {friendsList.length === 0 && <div style={{ color: '#666', fontSize: '0.9em' }}>Không có bạn bè</div>}
+
+              {friendsList.map((f: any) => {
+                const isChecked = !!localCollabRoles[f.id]; // Kiểm tra xem có trong object roles không
+                const currentRole = localCollabRoles[f.id] || 'VIEWER'; // Lấy role (nếu có)
+
+                return (
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="checkbox"
+                      id={`friend-edit-${f.id}`}
+                      style={{ width: 16, height: 16, flexShrink: 0 }}
+                      checked={isChecked}
+                      onChange={() => toggleCollaborator(f.id)}
+                    />
+                    
+                    <label 
+                        htmlFor={`friend-edit-${f.id}`} 
+                        style={{ 
+                          display: 'flex', 
+                          flexDirection: 'row',      
+                          alignItems: 'center',   
+                          gap: 6, 
+                          cursor: 'pointer', 
+                          flex: 1 
+                        }}
+                      >
+                        <img 
+                          src={f.avatar_url || 'https://placehold.co/24x24?text=F'} 
+                          alt={f.name}
+                          style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                        <span>{f.name}</span>
+                    </label>
+                    
+                    {/* Hiển thị dropdown chọn Role NẾU họ được check */}
+                    {isChecked && (
+                      <select
+                        value={currentRole}
+                        onChange={(e) => updateCollaboratorRole(f.id, e.target.value)}
+                        style={{ marginLeft: 'auto', fontSize: '15px', padding: '2px', borderRadius: '4px', width: '100px'}}
+                      >
+                        <option value="VIEWER">View only</option>
+                        <option value="EDITOR">Edit</option>
+                      </select>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+        // NẾU TÔI KHÔNG PHẢI CHỦ -> Tôi chỉ thấy danh sách (editingEvent.collaborators)
+          <div style={{ marginTop: 12 }}>
+            <label style={{ fontWeight: "bold" }}>Collaborators:</label>
+            {/* ... (Code cũ của bạn cho phần non-owner giữ nguyên - nó đã đẹp rồi) ... */}
+            {editingEvent.collaborators && editingEvent.collaborators.length > 0 ? (
+              <ul style={{ paddingLeft: 16, marginTop: 6, marginBlock: 0 }}>
+                {editingEvent.collaborators.map((c: any) => (
+                  <li key={c.user_id} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                     <img 
+                        src={c.profile?.avatar_url || 'https://placehold.co/24x24?text=C'} 
+                        alt={c.profile?.username || 'Collab'}
+                        style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
+                      />
+                    <span>
+                      {c.profile?.username || c.profile?.email || "Bạn ẩn danh"}
+                      <small style={{ color: "#666", marginLeft: 4 }}>
+                        ({c.role === 'EDITOR' ? 'Edit' : 'View only'})
+                      </small>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div style={{ marginTop: 6, color: "#666", fontSize: '0.9em' }}>Không có ai được mời.</div>
+            )}
+          </div>
+        )
       )}
 
       <label className={styles.checkboxLabel}>
         Completed:
         <div className={styles.checkboxWrapper}>
-          <input type="checkbox" name="completed" checked={!!editingEvent.completed} onChange={handleChange} />
+          <input type="checkbox" name="completed" checked={!!editingEvent.completed} onChange={handleChange} disabled={!isOwner} />
         </div>
       </label>
 
+      <TaskComments
+        supabase={supabase}
+        task={editingEvent}
+        currentUser={currentUser}
+        myUsername={myUsername}
+        myAvatarUrl={myAvatarUrl}
+        // Không có 'showInput={false}' -> Mặc định là 'true' -> Hiện ô nhập
+      />
+
+      {/* VÔ HIỆU HÓA CÁC NÚT HÀNH ĐỘNG
+        Chỉ để lại nút "Cancel" là hoạt động
+      */}
       <div className={styles.buttonGroup}>
-        <button className={styles.saveBtn} onClick={handleSave}>Save</button>
-        <button className={styles.deleteBtn} onClick={handleDelete}>Delete</button>
+        <button className={styles.saveBtn} onClick={handleSave} disabled={!isOwner}>Save</button>
+        <button className={styles.deleteBtn} onClick={handleDelete} disabled={!isOwner}>Delete</button>
         <button className={styles.cancelBtn} onClick={() => setShowModal(false)}>Cancel</button>
       </div>
+    </div>
+  );
+}
+
+
+// File: app/calendar/page.tsx
+// ... (Component TaskComments ở cuối file)
+
+function TaskComments({ supabase, task, currentUser, myUsername, myAvatarUrl, showInput: initialShowInput = true }: { supabase: any, task: any, currentUser: any, myUsername: string, myAvatarUrl: string, showInput?: boolean }) {
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [loading, setLoading] = useState(true);
+  
+  // 'showInput' đã được chuyển thành state nội bộ, nhưng chúng ta không cần nó. 
+  // Hãy giữ nguyên logic prop của bạn.
+  // const [showInput, setShowInput] = useState(initialShowInput); // <-- Dòng này không cần thiết nếu bạn dùng initialShowInput
+
+  // Hàm lấy comments
+  const fetchComments = async () => {
+    if (!task?.id) return;
+    setLoading(true);
+
+    // Query 1: Lấy tất cả comment
+    const { data: commentsData, error: commentsError } = await supabase
+      .from('task_comments')
+      .select('*') // Chỉ lấy comment, không join
+      .eq('task_id', task.id)
+      .order('created_at', { ascending: true });
+
+    if (commentsError) {
+      console.error("Lỗi lấy comments:", commentsError);
+      setLoading(false);
+      return;
+    }
+    if (!commentsData || commentsData.length === 0) {
+      setComments([]);
+      setLoading(false);
+      return;
+    }
+
+    // Query 2: Lấy profiles cho các comment đó
+    const userIds = Array.from(new Set(commentsData.map((c: any) => c.user_id)));
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .in('id', userIds);
+
+    if (profilesError) {
+      console.error("Lỗi lấy profiles:", profilesError);
+    }
+
+    // Gộp 2 kết quả lại
+    const profilesMap = (profilesData || []).reduce((acc: any, p: any) => {
+      acc[p.id] = p;
+      return acc;
+    }, {});
+
+    const combinedComments = commentsData.map((comment: any) => ({
+      ...comment,
+      profiles: profilesMap[comment.user_id] || null // Gắn profile vào comment
+    }));
+
+    setComments(combinedComments);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchComments();
+  }, [task.id]);
+
+
+  // Hàm gửi comment
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newComment.trim().length === 0 || !currentUser) return;
+
+    // 1. Insert comment (Không .select() join)
+    const { data, error } = await supabase
+      .from('task_comments')
+      .insert({
+        task_id: task.id,
+        user_id: currentUser.id,
+        content: newComment.trim(),
+      })
+      .select() // Chỉ .select() để lấy lại dòng vừa insert
+      .single();
+
+    if (error) {
+      alert("Không thể gửi comment!");
+      console.error(error);
+    } else {
+      // 2. Tự "gắn" profile của mình vào comment mới
+      // để nó hiển thị ngay mà không cần fetch
+      const newCommentWithProfile = {
+        ...data,
+        profiles: {
+          username: myUsername || 'Tôi',
+          avatar_url: myAvatarUrl || null
+        }
+      };
+      
+      setComments((prev) => [...prev, newCommentWithProfile]);
+      setNewComment("");
+    }
+  };
+
+  return (
+    <div className={styles.commentsSection} style={{ marginTop: 20, borderTop: '1px solid #eee', paddingTop: 15 }}>
+      <h4>Comment</h4>
+      
+      {/* Danh sách comments */}
+      <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: 10, padding: 5 }}>
+        {loading && <p>Loading...</p>}
+        {!loading && comments.length === 0 && <p style={{ color: '#888', fontSize: '0.9em' }}>No comments yet.</p>}
+        
+        {comments.map((comment) => (
+          <div key={comment.id} style={{ marginBottom: 10, paddingBottom: 5, borderBottom: '1px solid #f0f0f0' }}>
+            <strong style={{ fontSize: '0.9em' }}>
+              {/* Sửa lại để kiểm tra 'profiles' tồn tại */}
+              {comment.profiles?.username || 'Anonymous user'}
+            </strong>
+            <p style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{comment.content}</p>
+            <small style={{ color: '#999', fontSize: '0.75em' }}>
+              {new Date(comment.created_at).toLocaleString()}
+            </small>
+          </div>
+        ))}
+      </div>
+      {initialShowInput && (
+        <form onSubmit={handleSubmitComment} style={{ display: 'flex', gap: 8 }}>
+          <input
+            type="text"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Comment..."
+            style={{ flex: 1 }}
+          />
+          <button type="submit" className={styles.saveBtn} style={{ padding: '6px 12px' }}>Send</button>
+        </form>
+      )}
     </div>
   );
 }
