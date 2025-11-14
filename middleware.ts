@@ -2,12 +2,14 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
+
 
   // Bắt buộc phải tạo client trong middleware theo cách này
   const supabase = createServerClient(
@@ -60,15 +62,15 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // ⚡ Bypass test routes
-  const bypassRoutes = ["/friends"]; // ✅ Bỏ /friends khỏi check
-  if (bypassRoutes.some(r => pathname.startsWith(r))) {
-    return res;
-  }
+
+  // Rất quan trọng: Làm mới session để cookie được cập nhật
+  const { data: { session } } = await supabase.auth.getSession()
+
 
   // Xử lý logic bảo vệ trang
   const { pathname } = request.nextUrl
   const hasValidSession = !!session;
+
 
   // 🧱 Bảo vệ API private
   if (pathname.startsWith("/api/private")) {
@@ -79,11 +81,19 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // 🧭 Bảo vệ các trang khác
-  const protectedRoutes = ["/calendar", "/list", "/dashboard"];
-  if (!hasValidSession && protectedRoutes.includes(pathname)) {
-    return NextResponse.redirect(new URL("/login", req.url));
+
+  // 🧭 Bảo vệ các trang UI
+  const protectedRoutes = ["/list", "/dashboard", "/calendar", "/friends"];
+ 
+  // <--- SỬA ĐỔI 1: THÊM trang chủ "/" VÀO ĐÂY
+  const publicRoutes = ["/login", "/signup"];
+
+
+  if (!hasValidSession && protectedRoutes.some(route => pathname.startsWith(route))) {
+    // Nếu chưa đăng nhập và cố vào trang bảo vệ -> đá về login
+    return NextResponse.redirect(new URL("/login", request.url));
   }
+
 
   // <--- SỬA ĐỔI 2: DÙNG ".includes(pathname)" ĐỂ KIỂM TRA CHÍNH XÁC
   if (hasValidSession && publicRoutes.some(route => pathname.startsWith(route))) {
@@ -91,9 +101,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/calendar", request.url));
   }
 
+
   // Cho phép tất cả các trường hợp còn lại
   return response
 }
+
 
 // ⚙️ Config middleware
 export const config = {
@@ -108,3 +120,4 @@ export const config = {
     "/((?!api/public|_next/static|_next/image|favicon.ico).*)",
   ],
 };
+
