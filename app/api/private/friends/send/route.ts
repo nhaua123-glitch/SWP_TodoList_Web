@@ -4,6 +4,8 @@ import { google } from "googleapis";
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+export const runtime = 'nodejs'
+
 // Khởi tạo Supabase public (only for OAuth tokens table if needed). DB writes will use auth client below.
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,6 +14,8 @@ const supabase = createClient(
 
 // Gửi email bằng Gmail API (OAuth2)
 async function sendGmailOAuth(toEmail: string, subject: string, html: string) {
+  console.log("🔄 Bắt đầu gửi email đến:", toEmail);
+  
   // Lấy token đã lưu (provider = 'google')
   const { data: tokensRow, error: tokenErr } = await supabase
     .from("oauth_tokens")
@@ -20,21 +24,46 @@ async function sendGmailOAuth(toEmail: string, subject: string, html: string) {
     .single();
 
   if (tokenErr || !tokensRow?.refresh_token) {
-    throw new Error("Missing Gmail OAuth token. Please initialize OAuth.");
+    console.error("❌ Lỗi lấy token từ Supabase:", tokenErr);
+    throw new Error("Missing Gmail OAuth token. Vui lòng khởi tạo OAuth trước.");
+  }
+  
+  console.log("✅ Đã lấy được token từ Supabase");
+
+  // Kiểm tra biến môi trường
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.OAUTH_REDIRECT_URI) {
+    const missing = [
+      !process.env.GOOGLE_CLIENT_ID ? 'GOOGLE_CLIENT_ID' : '',
+      !process.env.GOOGLE_CLIENT_SECRET ? 'GOOGLE_CLIENT_SECRET' : '',
+      !process.env.OAUTH_REDIRECT_URI ? 'OAUTH_REDIRECT_URI' : ''
+    ].filter(Boolean).join(', ');
+    
+    console.error("❌ Thiếu biến môi trường:", missing);
+    throw new Error(`Thiếu cấu hình: ${missing}`);
   }
 
+  console.log("🔑 Đang khởi tạo OAuth2 client...");
   const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID!,
-    process.env.GOOGLE_CLIENT_SECRET!,
-    process.env.OAUTH_REDIRECT_URI!
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.OAUTH_REDIRECT_URI
   );
 
-  oauth2Client.setCredentials({
-    access_token: tokensRow.access_token || undefined,
-    refresh_token: tokensRow.refresh_token,
-    expiry_date: tokensRow.expiry_date || undefined,
-  });
+  try {
+    console.log("🔄 Đang thiết lập credentials...");
+    oauth2Client.setCredentials({
+      access_token: tokensRow.access_token || undefined,
+      refresh_token: tokensRow.refresh_token,
+      expiry_date: tokensRow.expiry_date ? Number(tokensRow.expiry_date) : undefined,
+    });
+    
+    console.log("✅ Đã thiết lập credentials");
+  } catch (error) {
+    console.error("❌ Lỗi khi thiết lập credentials:", error);
+    throw new Error("Lỗi khi thiết lập xác thực OAuth2");
+  }
 
+  console.log("📧 Đang khởi tạo Gmail client...");
   const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
   const from = process.env.EMAIL_FROM!; // tài khoản đã cấp quyền
@@ -54,10 +83,27 @@ async function sendGmailOAuth(toEmail: string, subject: string, html: string) {
     .replace(/\//g, "_")
     .replace(/=+$/, "");
 
-  await gmail.users.messages.send({
-    userId: "me",
-    requestBody: { raw },
-  });
+  console.log("✉️ Đang gửi email...");
+  try {
+    const response = await gmail.users.messages.send({
+      userId: "me",
+      requestBody: { raw },
+    });
+    
+    console.log("✅ Email đã được gửi thành công!");
+    console.log("Response:", JSON.stringify(response.data, null, 2));
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Lỗi khi gửi email:", error);
+    if (error.response) {
+      console.error("❌ Chi tiết lỗi từ Google API:", {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers
+      });
+    }
+    throw new Error(`Không thể gửi email: ${error.message}`);
+  }
 }
 
 // ✅ API gửi lời mời kết bạn
@@ -68,10 +114,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Thiếu email người nhận" }, { status: 400 });
     }
 
-    // ==================================================================
-    // ⭐️ SỬA LỖI 1: Khởi tạo Supabase Client ⭐️
-    // ==================================================================
-    const cookieStore = cookies(); 
+    // Lấy user hiện tại từ session cookies (SSR client)
+    const cookieStore = cookies();
     const supabaseAuth = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -80,17 +124,15 @@ export async function POST(req: Request) {
           get(name: string) {
             return cookieStore.get(name)?.value
           },
-          set(name: string, value: string, options: CookieOptions) {
+          set(name: string, value: string, options: any) {
             cookieStore.set({ name, value, ...options })
           },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.delete({ name, ...options })
+          remove(name: string, options: any) {
+            cookieStore.set({ name, value: '', ...options })
           },
         },
       }
     );
-    // ==================================================================
-    
     const {
       data: { user },
       error: authErr,
