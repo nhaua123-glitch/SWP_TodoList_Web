@@ -406,9 +406,17 @@
   font-style: italic;
   color: #a0aab8; /* Màu xám rất nhạt */
   text-align: center;
-  font-size: 0.85rem;
+  font-size: 0.85rem; 
 }
 
+
+.commentsSection h4{
+  margin-bottom: 10px;
+  font-weight: 700;
+  color: #5b758a; 
+  letter-spacing: 0.5px;
+  font-size: 1.3em;
+}
 
 /* 1. Sidebar setting */
 .sidebar {
