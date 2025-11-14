@@ -1,7 +1,11 @@
 .page {
   padding: 20px;
   font-family: Arial, sans-serif;
-  min-height: 100vh;
+  height: 100vh;           
+  display: flex;          
+  flex-direction: column; 
+  box-sizing: border-box;  
+  align-items: center;
 }
 
 /* Tiêu đề */
@@ -11,6 +15,8 @@
   margin-bottom: 20px;
   text-align: center;
   color: #fab8df;
+  width: 100%;        
+  max-width: 1600px;
 }
 
 
@@ -88,8 +94,10 @@
   display: flex;
   flex-direction: row;
   gap: 16px; /* Khoảng cách giữa sidebar và lịch */
-  max-width: 1200px; /* Đồng bộ với calendarContainer */
-  margin: 0 auto;
+  width: 80%;         /* Bắt nó giãn ra 100% */
+  max-width: 1600px;
+  flex-grow: 1;   
+  min-height: 0;
 }
 
 /* Sidebar add/edit task */
@@ -132,6 +140,7 @@
   gap: 12px; 
   padding: 0 0; 
   height: 100%;
+
 }
 
 /* 🌷 Tiêu đề Form */
@@ -273,6 +282,7 @@
   flex-direction: row !important; 
   align-items: flex-start;
   justify-content: space-between; /* Đẩy chữ và checkbox sang hai bên */
+  margin-top: 20px;
 }
 
 .checkboxWrapper {
@@ -342,10 +352,10 @@
 
 /* Task Details */
 .taskDetailsView {
-  padding: 25px; /* Tăng padding để thoáng hơn */
   height: 100%;
   box-sizing: border-box;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 90vw;
 }
 
 .taskDetailsView h3 {
@@ -387,18 +397,8 @@
 }
 
 .taskDescription {
-  /* Màu nền trắng sạch */
-  background: #ffffff; 
-  border-radius: 12px; /* Bo góc mạnh hơn, hiện đại hơn */
-  padding: 15px;
-  min-height: 80px;
-  word-wrap: break-word;
-  font-style: normal; /* Không dùng italic */
-  font-size: 0.9rem;
-  color: #3e4a58;
-  /* Viền và đổ bóng nhẹ để hộp nổi lên */
-  border: 1px solid #e0e4eb; 
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); 
+  display: flex;
+  justify-content: space-between;
 }
 
 .viewNote {
