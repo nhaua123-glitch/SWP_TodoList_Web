@@ -5,6 +5,18 @@ import { createBrowserClient } from "@supabase/ssr";
 import styles from "./profile.module.css";
 import Link from "next/link";
 
+const isSameDay = (d1: Date, d2: Date) => {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+};
+
+const isYesterday = (d1: Date, d2: Date) => {
+  const yesterday = new Date(d2);
+  yesterday.setDate(d2.getDate() - 1);
+  return isSameDay(d1, yesterday);
+};
+
 export default function MyProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [username, setUsername] = useState("");
@@ -14,6 +26,7 @@ export default function MyProfilePage() {
   const [msg, setMsg] = useState("");
   const [meId, setMeId] = useState<string | null>(null);
   const [imgOk, setImgOk] = useState(true);
+  const [streak, setStreak] = useState(0);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,49 +69,96 @@ export default function MyProfilePage() {
   ];
   const presetColors = ["#e4b5e8","#94bbe9","#b8f1eb","#f2dcf4","#c7e1ff","#fde2f3","#d1fadf","#ffe8b5"]; 
 
+  // --- BẮT ĐẦU: Thay thế code từ đây ---
+
+  // Hàm logic chính: Lấy profile VÀ tính/cập nhật streak
+  const fetchProfileAndStreak = async (userId: string) => {
+    const { data: prof, error: profError } = await supabase
+      .from("profiles")
+      .select("id, username, bio, mode, avatar_url, current_streak, last_login") // <-- Sửa select
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (profError) {
+      console.error("Lỗi khi lấy profile (streak):", profError);
+      return;
+    }
+
+    if (prof) {
+      // 1. Set dữ liệu profile (như cũ)
+      setProfile(prof);
+      setUsername(prof.username || "");
+      setBio(prof.bio || "");
+      setMode((prof.mode as "public" | "private") || "private");
+      setAvatarUrl(prof.avatar_url || "");
+
+      // 2. Logic tính toán Streak (y hệt trang calendar)
+      const today = new Date();
+      let newStreak = 0;
+      let updatePayload: any = {};
+
+      const lastLogin = prof.last_login ? new Date(prof.last_login) : null;
+      const currentStreak = prof.current_streak || 0;
+
+      if (!lastLogin) {
+        newStreak = 1;
+        updatePayload = { current_streak: 1, last_login: today.toISOString() };
+      } else if (isSameDay(lastLogin, today)) {
+        newStreak = currentStreak;
+      } else if (isYesterday(lastLogin, today)) {
+        newStreak = currentStreak + 1;
+        updatePayload = { current_streak: newStreak, last_login: today.toISOString() };
+      } else {
+        newStreak = 1;
+        updatePayload = { current_streak: 1, last_login: today.toISOString() };
+      }
+
+      // 3. Cập nhật state (để hiển thị)
+      setStreak(newStreak); 
+
+      // 4. Cập nhật CSDL (nếu cần)
+      if (Object.keys(updatePayload).length > 0) {
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update(updatePayload)
+          .eq("id", userId);
+        if (updateError) console.error("Lỗi cập nhật streak:", updateError);
+      }
+    }
+  };
+
+  // useEffect đầu tiên: Lấy thông tin khi tải trang
   useEffect(() => {
     const fetchMe = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.id) return;
       setMeId(user.id);
-      const { data: d } = await supabase
-        .from("profiles")
-        .select("id, username, bio, mode, avatar_url")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (d) {
-        setProfile(d);
-        setUsername(d.username || "");
-        setBio(d.bio || "");
-        setMode((d.mode as "public" | "private") || "private");
-        setAvatarUrl(d.avatar_url || "");
-      }
+      await fetchProfileAndStreak(user.id); // <-- Gọi hàm logic mới
     };
     fetchMe();
   }, []);
 
-  // Keep session in sync and reload profile when auth state changes
+  // useEffect thứ hai: Đồng bộ khi auth thay đổi
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const id = session?.user?.id ?? null;
       setMeId(id as any);
       if (id) {
-        const { data: d } = await supabase
-          .from("profiles")
-          .select("id, username, bio, mode, avatar_url")
-          .eq("id", id)
-          .maybeSingle();
-        if (d) {
-          setProfile(d);
-          setUsername(d.username || "");
-          setBio(d.bio || "");
-          setMode((d.mode as "public" | "private") || "private");
-          setAvatarUrl(d.avatar_url || "");
-        }
+        await fetchProfileAndStreak(id); // <-- Gọi hàm logic mới
+      } else {
+        // Clear nếu logout
+        setProfile(null);
+        setUsername("");
+        setBio("");
+        setMode("private");
+        setAvatarUrl("");
+        setStreak(0);
       }
     });
     return () => { subscription?.unsubscribe(); };
   }, []);
+
+  // --- KẾT THÚC: Thay thế code đến đây ---
 
   const save = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -130,6 +190,21 @@ export default function MyProfilePage() {
       </div>
 
       <div className={styles.form}>
+        {streak > 0 && (
+          <div style={{
+            marginBottom: '20px',
+            padding: '12px',
+            backgroundColor: 'rgba(255, 165, 0, 0.1)', // Màu cam nhạt
+            border: '1px solid rgba(255, 165, 0, 0.3)',
+            borderRadius: '8px',
+            textAlign: 'center',
+            fontSize: '1.1em',
+            color: '#e67e00', // Màu cam
+            fontWeight: 500
+          }}>
+            🔥 Chuỗi hiện tại: <strong>{streak} ngày</strong>
+          </div>
+        )}
         <label className={styles.label}>Choose animal avatar (SVG)</label>
         <div className={styles.avatarGrid}>
           {presetEmojis.map((emo, idx) => {

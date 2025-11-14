@@ -1,104 +1,144 @@
+/* ==== ĐỊNH NGHĨA ANIMATION "THỞ" MỚI ==== */
+@keyframes gradient-animation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 1. NỀN TRANG (Áp dụng animation) */
 .page {
   padding: 20px;
   font-family: Arial, sans-serif;
-  height: 100vh;           
-  display: flex;          
-  flex-direction: column; 
-  box-sizing: border-box;  
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
   align-items: center;
+  background-size: 400% 400%;
+  animation: gradient-animation 15s ease infinite; /* 15 giây cho 1 chu kỳ */
 }
 
-/* Tiêu đề */
+/* 2. TIÊU ĐỀ */
 .title {
   font-size: 35px;
   font-weight: bold;
   margin-bottom: 20px;
   text-align: center;
-  color: #fab8df;
-  width: 100%;        
+  color: #c25858;
+  width: 100%;
   max-width: 1600px;
 }
 
+/* 3. CONTAINER CHÍNH (Sidebar + Lịch) */
+.mainContentContainer {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  width: 80%;
+  max-width: 1600px;
+  flex-grow: 1;
+  min-height: 0;
+}
 
-/* Calendar */
+
+/* 5. LỊCH (Hiệu ứng "Thủy Tinh") */
 .calendarContainer {
-  background: #ffffff;
   padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 100px rgba(242, 12, 12, 0.1);
-  max-width: 1200px;
-  margin: 0 auto;
-  flex: 1; 
+  border-radius: 12px; /* Tăng bo góc */
+  flex: 1;
   min-width: 0;
+  background: rgba(255, 255, 255, 0.7); /* Mờ ít hơn sidebar */
+  backdrop-filter: blur(10px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
 }
 
-/* Đè style của react-big-calendar, nhưng scoping trong .calendarContainer */
-.calendarContainer :global(.rbc-header) {
-  color: #edafc7 !important;
-  font-weight: bold;
-}
 
-/* Style cho các ô ngày */
-.calendarContainer :global(.rbc-date-cell) {
-  color: #e09898;
-  font-weight: 500;
-}
-
-/* Style cho các ô ngày ngoài tháng */
-.calendarContainer :global(.rbc-off-range) {
-  color: #e1b6b6 !important; 
-}
-
+/* Thanh Toolbar (Chứa các nút) */
 .calendarContainer :global(.rbc-toolbar) {
   margin-bottom: 15px !important;
   display: flex;
   justify-content: space-between;
+  padding-bottom: 15px;
+  color: #e3b6d1 
 }
 
+/* Nút trên Toolbar (Nghệ thuật ở đây) */
 .calendarContainer :global(.rbc-toolbar button) {
-  gap: 10px;
-  background: #f8e1e1 !important;
-  border: none !important;
-  border-radius: 6px !important;
-  padding: 6px 12px !important;
+  background: rgba(255, 255, 255, 0.4) !important; /* Nền mờ */
+  border: 1px solid rgba(255, 255, 255, 0.5) !important; /* Viền mờ */
+  backdrop-filter: blur(5px) !important; /* Lọc mờ riêng cho nút */
+  border-radius: 8px !important; /* Bo góc "nghệ" hơn */
+  padding: 8px 14px !important;
+  color: #efb7d9 !important; /* Màu hồng đậm */
+  font-weight: 600 !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s ease !important; /* Transition mượt */
 }
 
+/* Nút khi Hover */
 .calendarContainer :global(.rbc-toolbar button:hover) {
-  background: #e9c3d4 !important;
+  background: rgba(255, 187, 187, 0.7) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-2px) !important; /* Nhấc nút lên */
 }
 
+/* Nút được Active (ví dụ: Month, Week) */
 .calendarContainer :global(.rbc-toolbar .rbc-active) {
-  background: #b2eab4 !important;
-  color: #fff !important;
+  background: #ffffff !important; /* Nền trắng đặc */
+  color: #d17fb0 !important;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8),
+    0 4px 10px rgba(0, 0, 0, 0.1) !important; /* Phát sáng */
+  transform: translateY(-2px) !important;
 }
 
+/* Header (Thứ 2, Thứ 3...) */
+.calendarContainer :global(.rbc-header) {
+  color: #d17fb0 !important; /* Màu hồng đậm */
+  font-weight: bold;
+  border: none !important;
+  padding: 10px 0 !important;
+}
+
+/* Ô ngày */
+.calendarContainer :global(.rbc-date-cell) {
+  color: rgb(124, 121, 121);
+  font-weight: 500;
+}
+
+/* Ô ngày hôm nay (Today) */
+.calendarContainer :global(.rbc-today) {
+  background: rgba(255, 165, 165, 0.7) !important;
+  border-radius: 6px;
+}
+
+/* Ô ngày ngoài tháng */
+.calendarContainer :global(.rbc-off-range) {
+  color: rgba(142, 142, 141, 0.3) !important;
+}
+
+/* Sự kiện (Event) */
 .calendarContainer :global(.rbc-event) {
   border-radius: 6px !important;
-  padding: 2px 6px !important;
+  padding: 4px 8px !important;
   font-size: 13px !important;
-  color: #f67d7d !important;
+  color: #efe1e1 !important; /* Chữ trắng */
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
 }
 
 .calendarContainer :global(.rbc-event:hover) {
-  background: #ffb2b2 !important;
-  color: white !important;
+  transform: scale(1.05); /* Phóng to khi hover */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.calendarContainer :global(.rbc-today) {
-  background: #f5d4e6 !important;
-}
-
-
-/* Container chính cho sidebar và lịch */
-.mainContentContainer {
-  display: flex;
-  flex-direction: row;
-  gap: 16px; /* Khoảng cách giữa sidebar và lịch */
-  width: 80%;         /* Bắt nó giãn ra 100% */
-  max-width: 1600px;
-  flex-grow: 1;   
-  min-height: 0;
-}
 
 /* Sidebar add/edit task */
 .editSidebar {
@@ -108,32 +148,16 @@
   border-radius: 8px;
   box-shadow: 0 4px 10px rgba(233, 190, 222, 0.3);
   overflow-y: auto;
-  background: linear-gradient(
-    -45deg, 
-    #EEAECA, /* Màu 1 (Màu cũ của bạn) */
-    #94bbe9, /* Màu 2 (Màu cũ của bạn) */
-    #b8f1eb, /* Màu 3 (Màu mới) */
-    #f2dcf4  /* Màu 4 (Màu mới) */
-  );
   background-size: 400% 400%;
+  background-color:#c1cddb;
 }
 
-/* Nút chọn màu nền / ảnh nền */
-.bgWidget {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  display: flex;
-  gap: 10px;
-  font-size: 20px;
-  cursor: pointer;
+.editSidebar :global(.rbc:hover) {
+  transform: scale(1.05); /* Phóng to khi hover */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 
-
-/* ========================================= */
-/* ✅ FORM ADD TASK (PASTEL STYLES) */
-/* ========================================= */
 
 .addForm {
   flex-direction: column;
@@ -434,6 +458,7 @@
 }
 
 
+
 /*Tuỳ chỉnh giao diện*/
 .commonHeaderStyle {
     font-size: 1.2rem;
@@ -449,21 +474,7 @@
     box-sizing: border-box;
 }
 
-.sidebarHeader {
-    font-size: 1.2rem;
-    color: #5e6c84;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    border-left: 4px solid #c3dafe;
-    padding-left: 10px;
-    padding-top: 5px; 
-    padding-bottom: 5px; 
-    width: 100%;
-    box-sizing: border-box;
-    margin-top: 0px; 
-    margin-bottom: 20px;
-}
+
 
 /* Dashboard*/
 .dashboardHeader{
@@ -484,6 +495,55 @@
     margin-bottom: 10px;
 }
 
+.menuItem,
+.dashboardHeader {
+  display: block; 
+  padding: 12px 15px;
+  margin: 4px 10px; 
+  border-radius: 8px; 
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+  color: #4b4b4b; 
+  background: rgba(255, 255, 255, 0.1); 
+  
+  /* === THÊM 3 DÒNG NÀY ĐỂ CĂN CHỈNH MŨI TÊN === */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menuItem:hover,
+.dashboardHeader:hover {
+  background: rgba(255, 255, 255, 0.5); /* Hiệu ứng glass */
+  transform: translateX(5px); /* Hơi dịch sang phải */
+  color: #d7c6d1; /* Đổi màu chữ khi hover */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+
+/* Khung bọc nội dung dropdown */
+.customizeContentWrapper {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+  padding-left: 15px; 
+  padding-right: 5px;
+}
+
+/* Khung khi mở */
+.customizeContentWrapper.open {
+  max-height: 200px; /* Chiều cao đủ chứa 2 item */
+}
+
+/* Tùy chỉnh 2 item bên trong dropdown */
+.customizeContentWrapper .menuItem {
+  background: rgba(176, 176, 176, 0.05); /* Nền hơi khác 1 chút */
+  margin-left: 0; 
+  margin-right: 0;
+}
+
+
 /* 2. Nút Toggle (Hamburger) */
 .toggleButton {
     position: fixed;
@@ -502,21 +562,16 @@
     border: none;
 }
 
+.toggleButton:hover{
+    background: #eacdee;
+    transform: scale(1.05);
+}
+
 /* Icon Bar (3 gạch ngang) */
 .iconBar {
     width: 100%;
     height: 2px;
     background: white;
-}
-
-/* thanh gạch ngang  */
-.menuItem {
-    padding: 10px 10px;
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    background-color: transparent;
 }
 
 /* Nút Hành động Dấu Cộng */
@@ -543,6 +598,10 @@
     font-weight: 600;
     letter-spacing: 0.3px;
 }
+.logoutContainer:hover {
+  background: rgba(255, 100, 100, 0.15); /* Nền đỏ mờ */
+}
+
 
 /* Wrapper cho các nhãn (label) */
 .labelWrapper {
@@ -553,7 +612,6 @@
     cursor: pointer;
     color: #898888;
 }
-
 
 
 .switchBtn {
@@ -591,3 +649,44 @@
   z-index: 1000;
 }
 
+
+/* 1. Định nghĩa animation (keyframe) */
+@keyframes pulse-flame {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 2. Style cho cái khung (div) chứa streak */
+.streakContainer {
+  position: fixed;
+  top: 98px;
+  right: 24px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5px;
+  cursor: default;
+}
+
+/* 3. Style cho ngọn lửa (span) */
+.streakFlame {
+  font-size: 40px;
+  animation: pulse-flame 2s ease-in-out infinite;
+  text-shadow: 0 2px 5px rgba(255, 140, 0, 0.7);
+}
+
+/* 4. Style cho con số (span) */
+.streakNumber {
+  color: #ffcccc;
+  font-weight: bold;
+  font-size: 12px;
+  text-shadow: 0 0 5px rgba(233, 213, 213, 0.7), 0 0 10px rgba(223, 217, 217, 0.7);
+}
