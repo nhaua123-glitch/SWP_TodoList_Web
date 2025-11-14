@@ -103,13 +103,13 @@ export default function MyProfilePage() {
   const save = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     const id = user?.id || meId;
-    if (!id) { setMsg("Chưa đăng nhập"); return; }
-    setMsg("Đang lưu...");
+    if (!id) { setMsg("Not logged in"); return; }
+    setMsg("Saving...");
     const { error } = await supabase
       .from("profiles")
       .upsert({ id, username, bio, mode, avatar_url: avatarUrl });
-    if (!error) setMsg("Lưu thành công");
-    else setMsg("Lỗi: " + error.message);
+    if (!error) setMsg("Saved successfully");
+    else setMsg("Error: " + error.message);
   };
 
   return (
@@ -130,7 +130,7 @@ export default function MyProfilePage() {
       </div>
 
       <div className={styles.form}>
-        <label className={styles.label}>Chọn avatar động vật (SVG)</label>
+        <label className={styles.label}>Choose animal avatar (SVG)</label>
         <div className={styles.avatarGrid}>
           {presetEmojis.map((emo, idx) => {
             const dataUrl = makeEmojiSvgDataUrl(emo, presetColors[idx % presetColors.length]);
@@ -163,7 +163,7 @@ export default function MyProfilePage() {
           onChange={(e) => setBio(e.target.value)}
         />
 
-        <label className={styles.label}>Chế độ hiển thị</label>
+        <label className={styles.label}>Display mode</label>
         <select
           className={styles.input}
           value={mode}
@@ -179,7 +179,7 @@ export default function MyProfilePage() {
         </div>
       </div>
 
-      <Link href="/calendar"><button className={styles.fab}>← Calendar</button></Link>
+      <Link href="/calendar"><button className={styles.fab}>← Back to Calendar</button></Link>
     </div>
   );
 }

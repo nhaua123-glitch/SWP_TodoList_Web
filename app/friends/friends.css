@@ -1,6 +1,5 @@
-/* 🌸 Tổng thể trang */
+/* 🌸 Tổng thể trang (đừng override body background để giữ màu nền đã chọn) */
 body {
-  background: linear-gradient(135deg, #fff5fb 0%, #ffeaf5 100%);
   font-family: "Quicksand", "Poppins", "Segoe UI", sans-serif;
   color: #333;
   margin: 0;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import "./friends.css";
+import styles from "./FriendsClient.module.css";
 
 
 interface Props {
@@ -127,100 +127,193 @@ export default function FriendsClient({ user, supabase }: Props) {
     fetchFriends();
   };
 
-  // 💡 5. LỖI CÚ PHÁP LÀ Ở ĐÂY:
-  // Lệnh "return" phải nằm BÊN TRONG hàm "FriendsClient"
+  const inviteMessageTone = inviteMsg.startsWith("✅")
+    ? styles.inviteMessageSuccess
+    : inviteMsg.startsWith("❌")
+    ? styles.inviteMessageError
+    : inviteMsg
+    ? styles.inviteMessageInfo
+    : "";
+
+  const formatEmail = (id: string, fallbackEmail?: string | null) => {
+    return profilesMap[id]?.email || fallbackEmail || id;
+  };
+
   return (
-    <div className="friends-scope"> 
-      <div className="friends-container">
-        <div style={{ marginBottom: 12 }}>
-          <Link href="/calendar">
-            <button type="button" className="backBtn" title="Back to Calendar">
-              ← Back to Calendar
-            </button>
-          </Link>
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.headerText}>
+          <span className={styles.kicker}>Connections</span>
+          <h1>Friends & invites</h1>
+          <p className={styles.subtitle}>
+            {friends.length ? `${friends.length} friends` : "No friends yet"}
+            {` · ${pendingReceived.length} incoming · ${pendingSent.length} sent`}
+          </p>
         </div>
-        <h2>🌸 Bạn bè của tôi</h2>
+        <Link href="/calendar" className={styles.backButton}>
+          ← Back to Calendar
+        </Link>
+      </header>
 
-        {/* Form gửi lời mời */}
-        <form onSubmit={handleInvite}>
-          <input
-            type="email"
-            placeholder="Nhập email bạn bè"
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
-          />
-          <button type="submit">Gửi</button>
-        </form>
-        {inviteMsg && <p>{inviteMsg}</p>}
+      <section className={styles.inviteCard}>
+        <div className={styles.inviteContent}>
+          <div className={styles.inviteText}>
+            <span className={styles.badge}>Invite</span>
+            <h2>Grow your circle</h2>
+            <p>
+              Send an invitation by email to collaborate, share tasks, and stay in sync.
+            </p>
+          </div>
+          <form onSubmit={handleInvite} className={styles.inviteForm}>
+            <input
+              type="email"
+              placeholder="Enter your friend&apos;s email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className={styles.inviteInput}
+            />
+            <button type="submit" className={styles.inviteButton}>
+              Send invite
+            </button>
+          </form>
+        </div>
+        {inviteMsg && (
+          <p className={`${styles.inviteMessage} ${inviteMessageTone}`}>{inviteMsg}</p>
+        )}
+      </section>
 
-        {/* Lời mời đến */}
-        <h3>📥 Lời mời đang chờ</h3>
-        {pendingReceived.length === 0 ? (
-          <p>Không có lời mời nào.</p>
-        ) : (
-          pendingReceived.map((p) => (
-            <div key={p.id} className="friend-item">
-              <div className="friend-info">
-                <span className="friend-icon pending">💌</span>
-                <span className="friend-email">{profilesMap[p.sender_id]?.email || p.sender_email || p.sender_id}</span>
-              </div>
-              <div>
-                <button
-                  className="accept"
-                  onClick={() => updateStatus(p.id, "accepted")}
-                >
-                  ✅
-                </button>
-                <button
-                  className="reject"
-                  onClick={() => updateStatus(p.id, "rejected")}
-                >
-                  ❌
-                </button>
-              </div>
+      <section className={styles.columns}>
+        <div className={styles.panel}>
+          <header className={styles.panelHeader}>
+            <div>
+              <h3>Incoming invites</h3>
+              <span className={styles.panelMeta}>{pendingReceived.length} awaiting action</span>
             </div>
-          ))
-        )}
+            <span className={styles.panelIcon} aria-hidden>
+              📪
+            </span>
+          </header>
+          {pendingReceived.length ? (
+            <ul className={styles.list}>
+              {pendingReceived.map((p) => (
+                <li key={p.id} className={styles.listItem}>
+                  <div className={styles.cardMeta}>
+                    <span className={`${styles.avatar} ${styles.avatarPending}`} aria-hidden>
+                      📪
+                    </span>
+                    <div className={styles.cardText}>
+                      <span className={styles.cardTitle}>{formatEmail(p.sender_id, p.sender_email)}</span>
+                      <span className={styles.cardSubtitle}>Waiting for your response</span>
+                    </div>
+                  </div>
+                  <div className={styles.actionGroup}>
+                    <button
+                      type="button"
+                      className={`${styles.actionButton} ${styles.acceptButton}`}
+                      onClick={() => updateStatus(p.id, "accepted")}
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.actionButton} ${styles.rejectButton}`}
+                      onClick={() => updateStatus(p.id, "rejected")}
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className={styles.empty}>No incoming invites right now.</div>
+          )}
+        </div>
 
-        {/* Lời mời đã gửi */}
-        <h3>⏳ Lời mời đã gửi</h3>
-        {pendingSent.length === 0 ? (
-          <p>Không có lời mời đã gửi.</p>
-        ) : (
-          pendingSent.map((p) => (
-            <div key={p.id} className="friend-item">
-              <div className="friend-info">
-                <span className="friend-icon sent">📤</span>
-                <span className="friend-email">{profilesMap[p.receiver_id]?.email || p.receiver_email || p.receiver_id}</span>
-              </div>
-              <div>
-                <button onClick={() => deleteFriend(p.id)}>🕓 Hủy</button>
-              </div>
+        <div className={styles.panel}>
+          <header className={styles.panelHeader}>
+            <div>
+              <h3>Sent invites</h3>
+              <span className={styles.panelMeta}>{pendingSent.length} awaiting reply</span>
             </div>
-          ))
-        )}
+            <span className={styles.panelIcon} aria-hidden>
+              📤
+            </span>
+          </header>
+          {pendingSent.length ? (
+            <ul className={styles.list}>
+              {pendingSent.map((p) => (
+                <li key={p.id} className={styles.listItem}>
+                  <div className={styles.cardMeta}>
+                    <span className={`${styles.avatar} ${styles.avatarSent}`} aria-hidden>
+                      ⏳
+                    </span>
+                    <div className={styles.cardText}>
+                      <span className={styles.cardTitle}>{formatEmail(p.receiver_id, p.receiver_email)}</span>
+                      <span className={styles.cardSubtitle}>Invitation sent</span>
+                    </div>
+                  </div>
+                  <div className={styles.actionGroup}>
+                    <button
+                      type="button"
+                      className={styles.actionButton}
+                      onClick={() => deleteFriend(p.id)}
+                    >
+                      Cancel invite
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className={styles.empty}>You haven&apos;t sent any invites yet.</div>
+          )}
+        </div>
 
-        {/* Danh sách bạn bè */}
-        <h3>✅ Danh sách bạn bè</h3>
-        {friends.length === 0 ? (
-          <p>Bạn chưa có bạn bè nào.</p>
-        ) : (
-          friends.map((f) => {
-            const friendId = f.sender_id === user.id ? f.receiver_id : f.sender_id;
-            return (
-              <div key={f.id} className="friend-item">
-                <div className="friend-info">
-                  <span className="friend-icon accepted">🌟</span>
-                  <span className="friend-email">{profilesMap[friendId]?.email || f.receiver_email || f.sender_email || friendId}</span>
-                </div>
-                <div>
-                  <button onClick={() => deleteFriend(f.id)}>🗑</button>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-      </div>
+        <div className={styles.panel}>
+          <header className={styles.panelHeader}>
+            <div>
+              <h3>Friends</h3>
+              <span className={styles.panelMeta}>{friends.length ? `${friends.length} connected` : "No friends yet"}</span>
+            </div>
+            <span className={styles.panelIcon} aria-hidden>
+              🤝
+            </span>
+          </header>
+          {friends.length ? (
+            <ul className={styles.list}>
+              {friends.map((f) => {
+                const friendId = f.sender_id === user.id ? f.receiver_id : f.sender_id;
+                return (
+                  <li key={f.id} className={styles.listItem}>
+                    <div className={styles.cardMeta}>
+                      <span className={`${styles.avatar} ${styles.avatarAccepted}`} aria-hidden>
+                        🤝
+                      </span>
+                      <div className={styles.cardText}>
+                        <span className={styles.cardTitle}>{formatEmail(friendId, f.receiver_email || f.sender_email)}</span>
+                        <span className={styles.cardSubtitle}>Friend</span>
+                      </div>
+                    </div>
+                    <div className={styles.actionGroup}>
+                      <button
+                        type="button"
+                        className={`${styles.actionButton} ${styles.dangerButton}`}
+                        onClick={() => deleteFriend(f.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className={styles.empty}>Start inviting friends to see them here.</div>
+          )}
+        </div>
+      </section>
+    </div>
   );
-} 
+}
+ 
