@@ -36,6 +36,9 @@ export default function Home() {
   const [session, setSession] = useState<Session | null>(null);
   const [myAvatarUrl, setMyAvatarUrl] = useState<string>("");
   const [myUsername, setMyUsername] = useState<string>("");
+  const [showProfileCard, setShowProfileCard] = useState(false);
+  const [myBio, setMyBio] = useState<string>("");
+  const showInlineProfile = false;
 
   // Inline Profile moved into BackgroundCustomizer sidebar
 
@@ -82,11 +85,12 @@ export default function Home() {
         // Fetch my profile for avatar
         const { data: prof } = await supabase
           .from("profiles")
-          .select("avatar_url, username")
+          .select("avatar_url, username, bio")
           .eq("id", user.id)
           .maybeSingle();
         if (prof?.avatar_url) setMyAvatarUrl(prof.avatar_url as string);
         if (prof?.username) setMyUsername(prof.username as string);
+        if (typeof prof?.bio === 'string') setMyBio(prof.bio as string);
       } else {
         setLoading(false);
       }
@@ -356,48 +360,75 @@ export default function Home() {
   return (
     <div className={styles.page}>
 
-      <div style={{ margin: "20px 0", textAlign: "center" }}>
-        <Link href="/friends">
-          <button
-            style={{
-              background: "linear-gradient(-45deg, #EEAECA, #94bbe9, #b8f1eb, #f2dcf4)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              padding: "8px 16px",
-              cursor: "pointer",
-            }}
-          >
-            👥 Invite Friends
-          </button>
-        </Link>
-      </div>
+      
 
       {/* Vì BackgroundCustomizer được định nghĩa BÊN TRONG Home(),
         nó có thể truy cập trực tiếp state 'session' của Home() 
       */}
       <BackgroundCustomizer session={session} />
       {/* Top-right avatar button linking to Profile */}
-      {isAuthenticated && (
+      {showInlineProfile && isAuthenticated && (
         <>
-          <Link href="/profile">
-            <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '6px 12px', borderRadius: 999, border: '1px solid #e3c9ef', background: 'rgba(255,255,255,0.7)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', backdropFilter: 'blur(4px) saturate(1.1)' }} title="My Profile">
-              <span style={{ fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="wave-hand" aria-hidden>👋</span>
-                <span className="blink-greet">Xin chào{myUsername ? `, ${myUsername}` : ''}</span>
-              </span>
-              <img
-                src={myAvatarUrl || 'https://placehold.co/64x64?text=🙂'}
-                alt="me"
-                width={64}
-                height={64}
-                style={{ borderRadius: '50%', border: '2px solid #e3c9ef', objectFit: 'cover', transition: 'transform 0.2s ease' }}
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/64x64?text=%F0%9F%99%82'; }}
-                onMouseOver={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.03)'; }}
-                onMouseOut={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1)'; }}
-              />
+          <div
+            onClick={() => setShowProfileCard((s) => !s)}
+            style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '6px 12px', borderRadius: 999, border: '1px solid #e3c9ef', background: 'rgba(255,255,255,0.7)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', backdropFilter: 'blur(4px) saturate(1.1)' }}
+            title="My Profile"
+          >
+            <span style={{ fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="wave-hand" aria-hidden>👋</span>
+              <span className="blink-greet">Hello{myUsername ? `, ${myUsername}` : ''}</span>
+            </span>
+            <img
+              src={myAvatarUrl || 'https://placehold.co/64x64?text=🙂'}
+              alt="me"
+              width={64}
+              height={64}
+              style={{ borderRadius: '50%', border: '2px solid #e3c9ef', objectFit: 'cover', transition: 'transform 0.2s ease' }}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/64x64?text=%F0%9F%99%82'; }}
+              onMouseOver={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.03)'; }}
+              onMouseOut={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1)'; }}
+            />
+          </div>
+          {showProfileCard && (
+            <div
+              style={{ position: 'fixed', top: 96, right: 16, zIndex: 1001, minWidth: 260, borderRadius: 12, border: '1px solid #e3c9ef', background: 'rgba(255,255,255,0.9)', boxShadow: '0 8px 20px rgba(0,0,0,0.12)', backdropFilter: 'blur(6px) saturate(1.1)', padding: 12 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Link href="/profile" title="Open profile to edit" onClick={() => setShowProfileCard(false)}>
+                  <img
+                    src={myAvatarUrl || 'https://placehold.co/56x56?text=🙂'}
+                    alt="me"
+                    width={56}
+                    height={56}
+                    style={{ borderRadius: '50%', border: '2px solid #e3c9ef', objectFit: 'cover', cursor: 'pointer' }}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/56x56?text=%F0%9F%99%82'; }}
+                  />
+                </Link>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <strong style={{ fontSize: 16 }}>{myUsername || currentUser?.user_metadata?.full_name || 'Người dùng'}</strong>
+                  <span style={{ fontSize: 13, color: '#666' }}>{currentUser?.email || currentUser?.user_metadata?.email}</span>
+                </div>
+              </div>
+              {myBio && (
+                <div style={{ marginTop: 8, fontSize: 13, color: '#444', whiteSpace: 'pre-wrap' }}>
+                  {myBio}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <Link href="/profile/view" style={{ flex: 1 }} onClick={() => setShowProfileCard(false)}>
+                  <div style={{ width: '100%', textAlign: 'center', padding: '8px 10px', borderRadius: 8, border: '1px solid #e3c9ef', background: '#f8f5fb', cursor: 'pointer' }}>
+                    View Profile
+                  </div>
+                </Link>
+                <div style={{ flex: 1 }}>
+                  <LogoutButton session={session} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #e3c9ef', background: '#ffecef', color: '#d7263d', cursor: 'pointer', fontWeight: 600 }}>
+                    Logout
+                  </LogoutButton>
+                </div>
+              </div>
             </div>
-          </Link>
+          )}
           <style jsx>{`
             @keyframes wave {
               0% { transform: rotate(0deg); }
@@ -521,8 +552,17 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
     }, [bgColor]);
 
     const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setBgColor(e.target.value);
+      const val = e.target.value;
+      setBgColor(val);
       document.body.style.backgroundImage = 'none';
+      document.body.style.background = val;
+      document.body.style.backgroundColor = val;
+      document.body.style.setProperty('--background', val);
+      try {
+        localStorage.setItem('app_bg_mode', 'color');
+        localStorage.setItem('app_bg_color', val);
+        localStorage.removeItem('app_bg_image');
+      } catch {}
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -535,6 +575,11 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
         document.body.style.backgroundSize = "cover";
         document.body.style.backgroundPosition = "center";
         document.body.style.backgroundColor = "";
+        try {
+          localStorage.setItem('app_bg_mode', 'image');
+          localStorage.setItem('app_bg_image', String(reader.result));
+          localStorage.removeItem('app_bg_color');
+        } catch {}
       };
       reader.readAsDataURL(file);
     };
@@ -624,7 +669,7 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
 
           {/* Link mở trang Profile riêng */}
           <Link 
-              href="/profile" 
+              href="/profile/view" 
               className={styles.dashboardHeader}
           >
             <span className={styles.dashboardLink}>Profile</span>
@@ -635,6 +680,13 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
               className={styles.dashboardHeader}
           >
             <span className={styles.dashboardLink}>Dashboard</span>
+          </Link>
+          {/* Invite Friends inside sidebar */}
+          <Link 
+              href="/friends" 
+              className={styles.dashboardHeader}
+          >
+            <span className={styles.dashboardLink}>Invite Friends</span>
           </Link>
           <div className={styles.logoutContainer}> 
               
