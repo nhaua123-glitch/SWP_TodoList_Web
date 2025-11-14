@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
@@ -15,9 +16,12 @@ export async function GET(req: Request) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !serviceKey) {
-      return NextResponse.json(
-        { error: "Server is missing Supabase configuration" },
-        { status: 500 }
+      const missing = [!url ? "NEXT_PUBLIC_SUPABASE_URL" : null, !serviceKey ? "SUPABASE_SERVICE_ROLE_KEY" : null]
+        .filter(Boolean)
+        .join(", ");
+      return new NextResponse(
+        `<h2 style="font-family:sans-serif;text-align:center;padding-top:80px;color:red">Server is missing Supabase configuration: ${missing}</h2>`,
+        { headers: { "Content-Type": "text/html; charset=utf-8" }, status: 500 }
       );
     }
 
