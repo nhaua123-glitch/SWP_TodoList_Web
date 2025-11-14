@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { google } from "googleapis";
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+
+export const runtime = 'nodejs'
 
 // Khởi tạo Supabase public (only for OAuth tokens table if needed). DB writes will use auth client below.
 const supabase = createClient(
@@ -113,9 +114,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Thiếu email người nhận" }, { status: 400 });
     }
 
-    // Lấy user hiện tại từ session cookies
-    const cookieStore = await cookies();
-    const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore as any });
+    // Lấy user hiện tại từ session cookies (SSR client)
+    const cookieStore = cookies();
+    const supabaseAuth = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: any) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, options: any) {
+            cookieStore.set({ name, value: '', ...options })
+          },
+        },
+      }
+    );
     const {
       data: { user },
       error: authErr,
