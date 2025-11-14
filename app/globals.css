@@ -1,27 +1,55 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --accent: #e3c9ef;
+  /* ---
+   * BIẾN MÀU CHÍNH (LIGHT MODE - GIỐNG DASHBOARD)
+   * --- */
+
+  /* Màu accent chính (xanh dương) */
+  --accent: #8ab8ff;
+
+  /* Màu text */
+  --text-dark: #1f1a34;
+  --text-dark-rgb: 31, 26, 52;
+  --text-muted: rgba(var(--text-dark-rgb), 0.6);
+
+  /* Màu nền panel (kính mờ) */
+  --panel-bg: rgba(255, 255, 255, 0.78);
+  --panel-border: rgba(255, 255, 255, 0.65);
+  --panel-shadow: 0 24px 40px rgba(23, 15, 45, 0.16);
+
+  /* Màu nền panel tối (dùng cho nút Active, nút Logout) */
+  --panel-dark-bg: rgba(21, 17, 43, 0.82);
+  --panel-dark-border: rgba(255, 255, 255, 0.28);
+  --panel-dark-shadow: 0 24px 40px rgba(15, 10, 34, 0.32);
+
+  /* Biến nền (cho @theme inline) */
+  --background: #f4f6f8; /* Nền xám rất nhạt */
+  --foreground: #1f1a34; /* Text tối */
+
+  /* Biến Font (từ file của bạn) */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), 'Inter', sans-serif;
+}
+
+/* Style cơ bản cho text */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-dark);
+}
+
+p {
+  color: var(--text-muted);
 }

@@ -1,692 +1,751 @@
-/* ==== ĐỊNH NGHĨA ANIMATION "THỞ" MỚI ==== */
-@keyframes gradient-animation {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* 1. NỀN TRANG (Áp dụng animation) */
+/* =================================== */
+/* BỐ CỤC TRANG CHÍNH */
+/* =================================== */
 .page {
-  padding: 20px;
-  font-family: Arial, sans-serif;
-  height: 100vh;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 96px 32px 64px;
   display: flex;
   flex-direction: column;
+  gap: 28px;
+  min-height: 100vh;
   box-sizing: border-box;
-  align-items: center;
-  background-size: 400% 400%;
-  animation: gradient-animation 15s ease infinite; /* 15 giây cho 1 chu kỳ */
 }
 
-/* 2. TIÊU ĐỀ */
 .title {
-  font-size: 35px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  text-align: center;
-  color: #c25858;
-  width: 100%;
-  max-width: 1600px;
+  margin: 0;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-dark);
+  text-align: center; /* Căn giữa */
 }
 
-/* 3. CONTAINER CHÍNH (Sidebar + Lịch) */
 .mainContentContainer {
-  display: flex;
-  flex-direction: row;
-  gap: 16px;
-  width: 80%;
-  max-width: 1600px;
+  display: grid;
+  grid-template-columns: 360px 1fr; /* Sidebar 360px */
+  gap: 24px;
+  width: 100%;
   flex-grow: 1;
-  min-height: 0;
+  min-height: 0; /* Cho phép co giãn */
 }
 
+/* =================================== */
+/* SIDEBAR (Panel Kính mờ) */
+/* =================================== */
+.editSidebar {
+  padding: 24px 26px;
+  border-radius: 22px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(12px);
+  overflow-y: auto;
+  max-height: 85vh; /* Giới hạn chiều cao */
+  flex-shrink: 0;
+}
 
-/* 5. LỊCH (Hiệu ứng "Thủy Tinh") */
+/* =================================== */
+/* CONTAINER LỊCH (Panel Kính mờ) */
+/* =================================== */
 .calendarContainer {
-  padding: 20px;
-  border-radius: 12px; /* Tăng bo góc */
-  flex: 1;
-  min-width: 0;
-  background: rgba(255, 255, 255, 0.7); /* Mờ ít hơn sidebar */
-  backdrop-filter: blur(10px) saturate(1.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-}
-
-
-/* Thanh Toolbar (Chứa các nút) */
-.calendarContainer :global(.rbc-toolbar) {
-  margin-bottom: 15px !important;
+  padding: 24px 26px;
+  border-radius: 22px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(12px);
   display: flex;
-  justify-content: space-between;
-  padding-bottom: 15px;
-  color: #e3b6d1 
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
 }
 
-/* Nút trên Toolbar (Nghệ thuật ở đây) */
+.calendarContainer :global(.rbc-calendar) {
+  height: 100%;
+  color: var(--text-dark);
+}
+
+/* --------------------------------- */
+/* Toolbar (Nút bấm) - STYLE TỪ DASHBOARD */
+/* --------------------------------- */
+.calendarContainer :global(.rbc-toolbar) {
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.calendarContainer :global(.rbc-toolbar .rbc-toolbar-label) {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-dark);
+  flex-grow: 1;
+  text-align: left;
+}
+
+.calendarContainer :global(.rbc-btn-group) {
+  display: flex;
+  gap: 8px;
+}
+
 .calendarContainer :global(.rbc-toolbar button) {
-  background: rgba(255, 255, 255, 0.4) !important; /* Nền mờ */
-  border: 1px solid rgba(255, 255, 255, 0.5) !important; /* Viền mờ */
-  backdrop-filter: blur(5px) !important; /* Lọc mờ riêng cho nút */
-  border-radius: 8px !important; /* Bo góc "nghệ" hơn */
-  padding: 8px 14px !important;
-  color: #efb7d9 !important; /* Màu hồng đậm */
-  font-weight: 600 !important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
-  transition: all 0.2s ease !important; /* Transition mượt */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 999px; /* Bo tròn */
+  border: 1px solid
+    color-mix(in srgb, var(--accent) 40%, rgba(255, 255, 255, 0.3));
+  background: color-mix(
+    in srgb,
+    var(--accent) 18%,
+    rgba(255, 255, 255, 0.82)
+  );
+  color: #1f2333;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  cursor: pointer;
 }
 
-/* Nút khi Hover */
 .calendarContainer :global(.rbc-toolbar button:hover) {
-  background: rgba(255, 187, 187, 0.7) !important;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
-  transform: translateY(-2px) !important; /* Nhấc nút lên */
+  transform: translateY(-1px);
+  background: color-mix(
+    in srgb,
+    var(--accent) 32%,
+    rgba(255, 255, 255, 0.9)
+  );
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
 }
 
-/* Nút được Active (ví dụ: Month, Week) */
 .calendarContainer :global(.rbc-toolbar .rbc-active) {
-  background: #ffffff !important; /* Nền trắng đặc */
-  color: #d17fb0 !important;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8),
-    0 4px 10px rgba(0, 0, 0, 0.1) !important; /* Phát sáng */
-  transform: translateY(-2px) !important;
+  background: var(--panel-dark-bg); /* Style panel tối */
+  color: #ffffff;
+  box-shadow: var(--panel-dark-shadow);
+  border: 1px solid var(--panel-dark-border);
 }
 
-/* Header (Thứ 2, Thứ 3...) */
+/* --------------------------------- */
+/* LƯỚI LỊCH (Style "Clean Tech") */
+/* --------------------------------- */
+
 .calendarContainer :global(.rbc-header) {
-  color: #d17fb0 !important; /* Màu hồng đậm */
-  font-weight: bold;
-  border: none !important;
-  padding: 10px 0 !important;
+  padding: 12px 8px;
+  border: none;
+  border-bottom: 2px solid rgba(var(--text-dark-rgb), 0.1);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  text-align: right;
 }
 
-/* Ô ngày */
+.calendarContainer :global(.rbc-month-view) {
+  border: 1px solid rgba(var(--text-dark-rgb), 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.calendarContainer :global(.rbc-day-bg) {
+  border-right: 1px solid rgba(var(--text-dark-rgb), 0.08);
+  border-top: 1px solid rgba(var(--text-dark-rgb), 0.08);
+}
+.calendarContainer :global(.rbc-month-row) {
+  border: none;
+}
+
 .calendarContainer :global(.rbc-date-cell) {
-  color: rgb(124, 121, 121);
-  font-weight: 500;
+  text-align: right;
+  padding: 8px 10px;
+  font-weight: 600;
+  color: var(--text-dark);
+  transition: background 0.2s;
 }
 
-/* Ô ngày hôm nay (Today) */
+.calendarContainer :global(.rbc-date-cell:hover) {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.calendarContainer :global(.rbc-off-range-bg) {
+  background: rgba(var(--text-dark-rgb), 0.02);
+}
+.calendarContainer :global(.rbc-off-range .rbc-date-cell) {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
 .calendarContainer :global(.rbc-today) {
-  background: rgba(255, 165, 165, 0.7) !important;
-  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.calendarContainer :global(.rbc-today .rbc-date-cell) {
+  color: var(--accent);
+  font-weight: 800;
 }
 
-/* Ô ngày ngoài tháng */
-.calendarContainer :global(.rbc-off-range) {
-  color: rgba(142, 142, 141, 0.3) !important;
-}
-
-/* Sự kiện (Event) */
 .calendarContainer :global(.rbc-event) {
-  border-radius: 6px !important;
-  padding: 4px 8px !important;
-  font-size: 13px !important;
-  color: #efe1e1 !important; /* Chữ trắng */
-  border: none !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 4px 8px 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(var(--text-dark-rgb), 0.05);
+  border-left: 4px solid var(--accent);
+  background-color: #fff;
+  color: var(--text-dark);
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: 0 4px 10px rgba(var(--text-dark-rgb), 0.05);
   transition: all 0.2s ease;
 }
 
 .calendarContainer :global(.rbc-event:hover) {
-  transform: scale(1.05); /* Phóng to khi hover */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(var(--text-dark-rgb), 0.1);
+  border-color: var(--accent);
 }
 
-
-/* Sidebar add/edit task */
-.editSidebar {
-  width: 300px;
-  flex-shrink: 0;
-  padding: 25px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(233, 190, 222, 0.3);
-  overflow-y: auto;
-  background-size: 400% 400%;
-  background-color:#c1cddb;
+.calendarContainer :global(.rbc-event.rbc-selected) {
+  background-color: var(--text-dark);
+  color: white;
+  border-left-color: var(--text-dark);
 }
 
-.editSidebar :global(.rbc:hover) {
-  transform: scale(1.05); /* Phóng to khi hover */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
+/* =================================== */
+/* FORM (ADD/EDIT/VIEW) - Style "Clean Tech" */
+/* =================================== */
 
-
-
-.addForm {
-  flex-direction: column;
-  gap: 12px; 
-  padding: 0 0; 
-  height: 100%;
-
-}
-
-/* 🌷 Tiêu đề Form */
-.addForm h3 {
-  text-align: center;
-  font-size: 1.3rem; 
+.addForm h3,
+.editForm h3,
+.taskDetailsView h3 {
+  margin: 0 0 24px;
+  font-size: 20px;
   font-weight: 700;
-  color: #e5989b; 
-  margin-top: 0;
-  margin-bottom: 20px; /* Thêm khoảng cách dưới cho đẹp */
-  padding-bottom: 5px;
+  color: var(--text-dark);
 }
 
-/* 🌿 Label (Tên trường) */
-.addForm label {
+.addForm label,
+.editForm label {
   display: flex;
-  margin-bottom: 5px;
-  text-align: left;
   flex-direction: column;
-  font-size: 0.9rem;
-  color: #6a6e7c; 
-  letter-spacing: 0.3px;
+  gap: 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 18px;
 }
 
 .addForm input:not([type="checkbox"]),
-.addForm select {
-  width: 100%;
-  margin-top: 5px;
-  padding: 8px 10px;
-  border-radius: 8px; /* Bo góc mềm mại hơn */
-  border: 1px solid #d4d8e3; 
-  background-color: #f7f9fc; /* Nền trắng/xám rất nhạt */
-  box-sizing: border-box;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.addForm input:focus,
-.addForm select:focus {
-  outline: none;
-  /* Viền xanh pastel khi focus */
-  border-color: #a7b8ff; 
-  box-shadow: 0 0 0 3px rgba(167, 184, 255, 0.2); 
-  background-color: #fff;
-}
-
-.buttonGroupadd {
-  display: flex;
-  justify-content: center;
-  gap: 15px; /* Tăng khoảng cách giữa các nút */
-  margin-top: 30px; 
-}
-
-.addForm .save,
-.addForm .cancel {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s ease-in-out;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-}
-
-.save {
-  background: linear-gradient(135deg, #a8e8b2, #75c975); 
-  color: #fff;
-}
-
-.save:hover {
-  background: linear-gradient(135deg, #8ad791, #62b562);
-  transform: translateY(-1px);
-}
-
-.cancel {
-  background: linear-gradient(135deg, #f5a9a9, #e47b73); 
-  color: #fff;
-}
-
-.cancel:hover {
-  background: linear-gradient(135deg, #f18c8c, #d36961);
-  transform: translateY(-1px);
-}
-
-
-/* Edit Task */
-.editForm {
-  flex-direction: column;
-  gap: 12px; 
-  padding: 0 0; 
-}
-
-/* 🌷 Tiêu đề Form */
-.editForm h3 {
-  text-align: center;
-  font-size: 1.3rem; 
-  font-weight: 700;
-  color: #e5989b; 
-  margin-top: 0;
-  margin-bottom: 20px; /* Thêm khoảng cách dưới cho đẹp */
-  padding-bottom: 5px;
-}
-
-/* 🌿 Label (Tên trường) */
-.editForm label {
-  display: flex;
-  margin-bottom: 5px;
-  text-align: left;
-  flex-direction: column;
-  font-size: 0.9rem;
-  color: #6a6e7c; 
-  letter-spacing: 0.3px;
-}
-
-/* 🤍 Input & Select Fields */
+.addForm select,
 .editForm input:not([type="checkbox"]),
 .editForm select {
   width: 100%;
-  margin-top: 5px;
-  padding: 8px 10px;
-  border-radius: 8px; /* Bo góc mềm mại hơn */
-  border: 1px solid #d4d8e3; 
-  background-color: #f7f9fc; /* Nền trắng/xám rất nhạt */
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--text-dark-rgb), 0.15);
+  background-color: #fff;
   box-sizing: border-box;
+  font-size: 15px;
+  color: var(--text-dark);
+  font-weight: 500;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.addForm input::placeholder,
+.editForm input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+.addForm input:focus,
+.addForm select:focus,
 .editForm input:focus,
 .editForm select:focus {
   outline: none;
-  /* Viền xanh pastel khi focus */
-  border-color: #a7b8ff; 
-  box-shadow: 0 0 0 3px rgba(167, 184, 255, 0.2); 
-  background-color: #fff;
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-/* 🟩 Checkbox */
-.checkboxLabel {
-  display: flex !important; /* Ghi đè flex-direction: column của .editForm label */
-  flex-direction: row !important; 
-  align-items: flex-start;
-  justify-content: space-between; /* Đẩy chữ và checkbox sang hai bên */
-  margin-top: 20px;
+.editForm input:disabled,
+.editForm select:disabled,
+.editForm button:disabled {
+  opacity: 0.6;
+  background: rgba(var(--text-dark-rgb), 0.05);
+  cursor: not-allowed;
 }
 
-.checkboxWrapper {
+/* Nút bấm (Add, Save, Delete, Cancel) */
+.buttonGroup,
+.buttonGroupadd {
   display: flex;
-  width: 100%; /* Chiếm hết chiều rộng */
-  justify-content: center; /* 🔥 CĂN CHECKBOX VÀO GIỮA */
-  margin-top: 5px;
+  gap: 12px;
+  margin-top: 24px;
 }
 
-.editForm input[type="checkbox"] {
-  transform: scale(1.1); /* Giảm kích thước scale để trông gọn hơn */
-}
-
-.buttonGroup {
-  display: flex;
-  justify-content: center;
-  gap: 15px; /* Tăng khoảng cách giữa các nút */
-  margin-top: 30px; /* Đẩy xuống dưới rõ ràng hơn */
-}
-
-.editForm button {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s ease-in-out;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* ✅ Nút Save (Màu xanh lá Pastel) */
-.saveBtn {
-  background: linear-gradient(135deg, #a8e8b2, #75c975); 
-  color: #fff;
-}
-
-.saveBtn:hover {
-  background: linear-gradient(135deg, #8ad791, #62b562);
-  transform: translateY(-1px);
-}
-
-/* 🗑️ Nút Delete (Màu đỏ Pastel) */
-.deleteBtn {
-  /* Màu đỏ pastel không gắt */
-  background: linear-gradient(135deg, #f5a9a9, #e47b73); 
-  color: #fff;
-}
-
-.deleteBtn:hover {
-  background: linear-gradient(135deg, #f18c8c, #d36961);
-  transform: translateY(-1px);
-}
-
-/* ✖️ Nút Cancel (Màu xám/trắng nhạt Pastel) */
+.save,
+.saveBtn,
+.deleteBtn,
+.cancel,
 .cancelBtn {
-  /* Màu xám/xanh nhạt pastel */
-  background: #e0eaf3; 
-  color: #5e6c84;
+  flex: 1;
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  cursor: pointer;
+  font-size: 15px;
 }
 
-.cancelBtn:hover {
-  background: #cdd8e4;
+.save,
+.saveBtn {
+  background: var(--accent);
+  color: var(--text-dark);
+  border-color: var(--accent);
+}
+.save:hover,
+.saveBtn:hover {
   transform: translateY(-1px);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 30%, transparent);
+  filter: brightness(1.05);
 }
 
+.cancel,
+.cancelBtn {
+  background: transparent;
+  border-color: rgba(var(--text-dark-rgb), 0.2);
+  color: var(--text-muted);
+}
+.cancel:hover,
+.cancelBtn:hover {
+  background: rgba(var(--text-dark-rgb), 0.05);
+  color: var(--text-dark);
+}
 
+.deleteBtn {
+  background: #d7263d;
+  color: #ffffff;
+}
+.deleteBtn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 10px 22px rgba(220, 53, 69, 0.2);
+}
 
-/* Task Details */
+/* Checkbox (Completed) */
+.checkboxLabel {
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background-color: #fff;
+  border: 1px solid rgba(var(--text-dark-rgb), 0.15);
+}
+.checkboxWrapper {
+  margin-top: 0;
+}
+.editForm input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+/* =================================== */
+/* CHI TIẾT TASK (VIEW ONLY) */
+/* =================================== */
 .taskDetailsView {
   height: 100%;
   box-sizing: border-box;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  max-width: 90vw;
 }
 
 .taskDetailsView h3 {
   margin-top: 0;
   margin-bottom: 30px;
   text-align: center;
-  font-size: 1.5rem; 
+  font-size: 1.5rem;
   font-weight: 700;
-  /* Màu xanh trầm hiện đại (Blue-Gray) */
-  color: #5b758a; 
+  color: var(--text-dark);
   letter-spacing: 0.5px;
 }
-
 .taskDetailsView h4 {
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 20px; 
-  /* Màu xanh lá/xám đậm */
-  color: #3e4a58; 
-  border-bottom: 2px solid #eef1f4; /* Đường kẻ đậm hơn, màu sạch hơn */
+  margin-bottom: 20px;
+  color: var(--text-dark);
+  border-bottom: 2px solid rgba(var(--text-dark-rgb), 0.1);
   padding-bottom: 10px;
 }
-
 .taskDetailsView p {
   margin: 10px 0;
   line-height: 1.5;
   font-size: 0.95rem;
-  color: #6a7f8e; 
-  display: flex; 
-  justify-content: space-between;
+  color: var(--text-muted);
 }
-
 .taskDetailsView p strong {
-  color: #3e4a58; 
-  font-weight: 600; 
+  color: var(--text-dark);
+  font-weight: 600;
   font-size: 0.95rem;
-  display: inline;
-  margin-right: 5px;
+  display: block; /* Đổi sang block cho dễ đọc */
+  margin-bottom: 4px;
 }
-
 .taskDescription {
-  display: flex;
-  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background-color: #fff;
+  border: 1px solid rgba(var(--text-dark-rgb), 0.15);
+  word-break: break-word;
 }
 
-.viewNote {
-  margin-top: 30px;
-  font-style: italic;
-  color: #a0aab8; /* Màu xám rất nhạt */
-  text-align: center;
-  font-size: 0.85rem; 
+/* =================================== */
+/* PHẦN COMMENT */
+/* =================================== */
+.commentsSection {
+  margin-top: 24px;
+  border-top: 1px solid rgba(var(--text-dark-rgb), 0.1);
+  padding-top: 20px;
 }
-
-
-.commentsSection h4{
-  margin-bottom: 10px;
+.commentsSection h4 {
+  margin: 0 0 16px;
+  font-size: 18px;
   font-weight: 700;
-  color: #5b758a; 
-  letter-spacing: 0.5px;
-  font-size: 1.3em;
+  color: var(--text-dark);
 }
-
-/* 1. Sidebar setting */
-.sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 280px;
-    background-color: rgb(253, 253, 253);
-    z-index: 1000;
-    box-shadow: 2px 0 5px rgba(150, 46, 46, 0.2);
-    padding: 20px 10px;
-    box-sizing: border-box;
-    padding-top: 60px;
+/* Khu vực cuộn comment */
+.commentsSection > div:first-of-type {
+  background: rgba(var(--text-dark-rgb), 0.03);
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid rgba(var(--text-dark-rgb), 0.05);
+  max-height: 150px;
+  overflow-y: auto;
 }
-
-
-
-/*Tuỳ chỉnh giao diện*/
-.commonHeaderStyle {
-    font-size: 1.2rem;
-    color: #5e6c84;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    border-left: 4px solid #c3dafe;
-    padding-left: 10px;
-    padding-top: 5px; 
-    padding-bottom: 5px; 
-    width: 100%;
-    box-sizing: border-box;
-}
-
-
-
-/* Dashboard*/
-.dashboardHeader{
-    font-size: 1.2rem;
-    color: #5e6c84;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    border-left: 4px solid #c3dafe;
-    padding-left: 10px;
-    padding-top: 5px; 
-    padding-bottom: 5px; 
-    width: 100%;
-    box-sizing: border-box;
-    cursor: pointer;
-    text-decoration: none;
-    margin-top: 40px; 
-    margin-bottom: 10px;
-}
-
-.menuItem,
-.dashboardHeader {
-  display: block; 
-  padding: 12px 15px;
-  margin: 4px 10px; 
-  border-radius: 8px; 
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  font-weight: 500;
-  color: #4b4b4b; 
-  background: rgba(255, 255, 255, 0.1); 
-  
-  /* === THÊM 3 DÒNG NÀY ĐỂ CĂN CHỈNH MŨI TÊN === */
+.commentsSection form {
   display: flex;
-  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+/* Input comment */
+.commentsSection input {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--text-dark-rgb), 0.15);
+  background-color: #fff;
+  box-sizing: border-box;
+  font-size: 15px;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+.commentsSection input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+/* Nút Send comment */
+.commentsSection .saveBtn {
+  flex: 0 1 auto;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* =================================== */
+/* SIDEBAR CÀI ĐẶT (Bên trái) */
+/* =================================== */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 280px;
+  z-index: 1000;
+  padding: 20px 10px;
+  box-sizing: border-box;
+  padding-top: 90px;
+  /* Style Kính mờ */
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  border-right: 1px solid var(--panel-border);
+  box-shadow: 0 10px 30px rgba(23, 15, 45, 0.1);
+  transition: transform 0.3s ease-in-out;
+}
+
+/* Nút Toggle (Hamburger) */
+.toggleButton {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1001;
+  cursor: pointer;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 16px;
+  display: flex;
   align-items: center;
+  justify-content: center;
+  border: none;
+  /* Style panel tối (giống nút logout dashboard) */
+  background: var(--panel-dark-bg);
+  border: 1px solid var(--panel-dark-border);
+  box-shadow: var(--panel-dark-shadow);
+  color: #f6f7ff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.toggleButton:hover {
+  transform: translateY(-1px) scale(1.02);
+  filter: brightness(1.1);
 }
 
-.menuItem:hover,
+.iconBar {
+  width: 50%;
+  height: 2px;
+  background: white;
+}
+
+/* Tiêu đề trong sidebar cài đặt */
+.dashboardHeader {
+  font-size: 1.1rem;
+  color: var(--text-dark);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  border-left: 4px solid var(--accent);
+  padding: 10px 14px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  text-decoration: none;
+  justify-content: space-between; /* Cho mũi tên */
+  transition: background 0.2s;
+}
 .dashboardHeader:hover {
-  background: rgba(255, 255, 255, 0.5); /* Hiệu ứng glass */
-  transform: translateX(5px); /* Hơi dịch sang phải */
-  color: #d7c6d1; /* Đổi màu chữ khi hover */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  /* Thay background tĩnh bằng animation */
+  animation: hover-pulse 1.5s infinite ease-in-out;
+  cursor: pointer;
+}
+.dashboardHeader:active {
+  background: rgba(var(--text-dark-rgb), 0.1); 
+  color: var(--accent);
 }
 
+/* Mũi tên dropdown */
+.customizeArrow {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--text-muted);
+  transition: transform 0.3s ease;
+}
+.customizeArrow.open {
+  transform: rotate(180deg);
+}
 
 /* Khung bọc nội dung dropdown */
 .customizeContentWrapper {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.3s ease-in-out;
-  padding-left: 15px; 
+  transition: max-height 0.3s ease-out;
+  padding-left: 15px;
   padding-right: 5px;
 }
-
-/* Khung khi mở */
 .customizeContentWrapper.open {
-  max-height: 200px; /* Chiều cao đủ chứa 2 item */
+  max-height: 200px; /* Đủ chứa 2 item */
 }
 
-/* Tùy chỉnh 2 item bên trong dropdown */
-.customizeContentWrapper .menuItem {
-  background: rgba(176, 176, 176, 0.05); /* Nền hơi khác 1 chút */
-  margin-left: 0; 
-  margin-right: 0;
-}
-
-
-/* 2. Nút Toggle (Hamburger) */
-.toggleButton {
-    position: fixed;
-    top: 15px;
-    left: 15px;
-    z-index: 1001;
-    cursor: pointer;
-    width: 30px;
-    height: 30px;
-    padding: 0;
-    border-radius: 5px;
-    background: #f4e4f5ff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-}
-
-.toggleButton:hover{
-    background: #eacdee;
-    transform: scale(1.05);
-}
-
-/* Icon Bar (3 gạch ngang) */
-.iconBar {
-    width: 100%;
-    height: 2px;
-    background: white;
-}
-
-/* Nút Hành động Dấu Cộng */
-.actionPlus {
-    width: 20px;
-    height: 20px;
-    color: #888;
-    font-size: 14px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* 6. Container cho Logout (căn chỉnh dưới cùng) */
-.logoutContainer {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    background: linear-gradient(135deg, #b5c7f7, #d8c7ff);
-    color: #fff;
-    border-radius: 12px;
-    padding: 10px 20px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-}
-.logoutContainer:hover {
-  background: rgba(255, 100, 100, 0.15); /* Nền đỏ mờ */
-}
-
-
-/* Wrapper cho các nhãn (label) */
-.labelWrapper {
-    display: flex; 
-    justify-content: space-between; 
-    width: 100%; 
-    align-items: center; 
-    cursor: pointer;
-    color: #898888;
-}
-
-
-.switchBtn {
-  padding: 6px 16px;
-  border: none;
-  border-radius: 8px;
-  background: #f3d8f4;
-  color: white;
-  font-size: 14px;
+.menuItem {
+  padding: 10px 10px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(var(--text-dark-rgb), 0.1);
   cursor: pointer;
-  transition: background 0.2s;
+  background-color: transparent;
+  border-radius: 8px;
+  margin: 4px 0;
+  transition: background 0.2s, transform 0.1s ease-out;
+}
+.menuItem:hover {
+  /* Thay background tĩnh bằng animation */
+  animation: hover-pulse 1.5s infinite ease-in-out;
+}
+.menuItem:active {
+  background: rgba(var(--text-dark-rgb), 0.1); /* Đậm hơn */
+  color: var(--accent); /* <-- THÊM DÒNG NÀY */
+  animation: none;
 }
 
-.switchBtn:hover {
-  background: #547793;
+.labelWrapper {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-items: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.labelWrapper:hover {
+  color: var(--text-dark);
 }
 
-/* Hiệu ứng nền động cho sidebar */
-@keyframes slide {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+.actionPlus {
+  width: 24px;
+  height: 24px;
+  color: var(--text-dark);
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--accent);
 }
 
-.profileToggleWrap {
-  position: fixed;
-  top: 16px;
-  left: 16px;
-  z-index: 1000;
+/* Nút Logout (Giống Dashboard) */
+.logoutContainer {
+  position: absolute;
+  bottom: 20px;
+  left: 10px;
+  right: 10px;
+}
+.logoutContainer > button {
+  width: 100%;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-dark-border);
+  background: var(--panel-dark-bg);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: var(--panel-dark-shadow);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.logoutContainer > button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.07);
+}
+.logoutContainer > button:active {
+  transform: translateY(1px) scale(0.98); /* Nhấn xuống */
+  filter: brightness(0.95);
 }
 
-
-/* 1. Định nghĩa animation (keyframe) */
+/* =================================== */
+/* STREAK COUNTER */
+/* =================================== */
 @keyframes pulse-flame {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.3);
-  }
-  100% {
-    transform: scale(1);
-  }
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 
-/* 2. Style cho cái khung (div) chứa streak */
 .streakContainer {
   position: fixed;
-  top: 98px;
+  top: 20px; /* Căn lề giống nút hamburger */
   right: 24px;
   z-index: 999;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.5px;
+  gap: 6px;
   cursor: default;
+  padding: 8px 12px;
+  /* Style Kính mờ */
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(10px);
+  border-radius: 999px; /* Bo tròn */
 }
 
-/* 3. Style cho ngọn lửa (span) */
 .streakFlame {
-  font-size: 40px;
+  font-size: 20px; /* Kích thước vừa phải */
   animation: pulse-flame 2s ease-in-out infinite;
-  text-shadow: 0 2px 5px rgba(255, 140, 0, 0.7);
+  line-height: 1; /* Căn chỉnh ngọn lửa */
 }
 
-/* 4. Style cho con số (span) */
 .streakNumber {
-  color: #ffcccc;
-  font-weight: bold;
-  font-size: 12px;
-  text-shadow: 0 0 5px rgba(233, 213, 213, 0.7), 0 0 10px rgba(223, 217, 217, 0.7);
+  color: var(--text-dark);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* =================================== */
+/* RESPONSIVE */
+/* =================================== */
+@media (max-width: 960px) {
+  .mainContentContainer {
+    grid-template-columns: 1fr;
+  }
+  .editSidebar {
+    max-height: none;
+    order: 2; /* Sidebar xuống dưới */
+  }
+  .calendarContainer {
+    order: 1; /* Lịch lên trên */
+    min-height: 600px;
+  }
+  .page {
+    padding: 80px 18px 48px;
+  }
+}
+
+@media (max-width: 520px) {
+  .title {
+    font-size: 30px;
+  }
+  .calendarContainer,
+  .editSidebar {
+    padding: 16px;
+    border-radius: 18px;
+  }
+  .calendarContainer :global(.rbc-toolbar) {
+    justify-content: space-between;
+  }
+  .calendarContainer :global(.rbc-toolbar .rbc-toolbar-label) {
+    font-size: 20px;
+    order: 2;
+    width: 100%;
+    text-align: center;
+    margin-top: 10px;
+  }
+  .calendarContainer :global(.rbc-btn-group) {
+    order: 1;
+    flex-grow: 1;
+    justify-content: space-between;
+  }
+  .calendarContainer :global(.rbc-toolbar button) {
+    padding: 8px 10px;
+    font-size: 13px;
+    flex-grow: 1; /* Cho các nút bằng nhau */
+  }
+  .calendarContainer :global(.rbc-header) {
+    padding: 10px 4px;
+    text-align: center;
+  }
+  .calendarContainer :global(.rbc-date-cell) {
+    padding: 6px 4px;
+    text-align: center;
+  }
+  /* =================================== */
+/* ANIMATION NHẤP NHÁY KHI HOVER */
+/* =================================== */
+@keyframes hover-pulse {
+  0% {
+    background-color: rgba(var(--text-dark-rgb), 0.05);
+  }
+  50% {
+    /* Sáng lên màu xanh accent ở giữa nhịp */
+    background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  100% {
+    background-color: rgba(var(--text-dark-rgb), 0.05);
+  }
+}
 }
