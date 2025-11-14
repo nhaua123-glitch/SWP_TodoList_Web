@@ -38,7 +38,8 @@ export default function Home() {
   const [myUsername, setMyUsername] = useState<string>("");
   const [showProfileCard, setShowProfileCard] = useState(false);
   const [myBio, setMyBio] = useState<string>("");
-  const showInlineProfile = false;
+  const [streak, setStreak] = useState(0); 
+  const showInlineProfile = true; 
 
   // Inline Profile moved into BackgroundCustomizer sidebar
 
@@ -66,8 +67,7 @@ export default function Home() {
     color: "#3174ad",
     type: "work",
     visibility: "PRIVATE",      
-    collaborators: [],          
-    subtasks: [],               
+    collaborators: [],                      
   });
 
   useEffect(() => {
@@ -82,15 +82,70 @@ export default function Home() {
         setIsAuthenticated(true); 
         fetchTasks();
         fetchFriends(user); 
-        // Fetch my profile for avatar
-        const { data: prof } = await supabase
+
+        // 1. Các hàm trợ giúp so sánh ngày (bỏ qua phần giờ)
+        const isSameDay = (d1: Date, d2: Date) => {
+          return d1.getFullYear() === d2.getFullYear() &&
+                 d1.getMonth() === d2.getMonth() &&
+                 d1.getDate() === d2.getDate();
+        };
+
+        const isYesterday = (d1: Date, d2: Date) => {
+          const yesterday = new Date(d2);
+          yesterday.setDate(d2.getDate() - 1);
+          return isSameDay(d1, yesterday);
+        };
+
+        const today = new Date();
+        let newStreak = 0;
+        let updatePayload: any = {}; // Object để cập nhật CSDL
+
+       const { data: prof, error: profError } = await supabase
           .from("profiles")
-          .select("avatar_url, username, bio")
+          .select("avatar_url, username, bio, current_streak, last_login")
           .eq("id", user.id)
           .maybeSingle();
+
+        if (profError) console.error("Lỗi khi lấy profile (streak):", profError);
         if (prof?.avatar_url) setMyAvatarUrl(prof.avatar_url as string);
         if (prof?.username) setMyUsername(prof.username as string);
         if (typeof prof?.bio === 'string') setMyBio(prof.bio as string);
+
+        const lastLogin = prof?.last_login ? new Date(prof.last_login) : null;
+        const currentStreak = prof?.current_streak || 0;
+
+        if (!lastLogin) {
+          // Case 1: Đăng nhập lần đầu tiên
+          newStreak = 1;
+          updatePayload = { current_streak: 1, last_login: today.toISOString() };
+        } else if (isSameDay(lastLogin, today)) {
+          // Case 2a: Đã đăng nhập trong hôm nay -> Không làm gì
+          newStreak = currentStreak;
+          // Không cần update CSDL
+        } else if (isYesterday(lastLogin, today)) {
+          // Case 2b: Đăng nhập ngày hôm qua -> Tăng streak
+          newStreak = currentStreak + 1;
+          updatePayload = { current_streak: newStreak, last_login: today.toISOString() };
+        } else {
+          // Case 2c: Đăng nhập cách đây > 1 ngày -> Streak bị reset
+          newStreak = 1;
+          updatePayload = { current_streak: 1, last_login: today.toISOString() };
+        }
+
+        // 5. Cập nhật state (để hiển thị trên UI)
+        setStreak(newStreak);
+
+        // 6. Cập nhật CSDL (chỉ khi cần thiết)
+        if (Object.keys(updatePayload).length > 0) {
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update(updatePayload)
+            .eq("id", user.id);
+          
+          if (updateError) console.error("Lỗi cập nhật streak:", updateError);
+          else console.log("Streak updated:", updatePayload);
+        }
+
       } else {
         setLoading(false);
       }
@@ -104,10 +159,11 @@ export default function Home() {
 
   const fetchTasks = async () => {
     setLoading(true);
-    // ... (Code fetchTasks của bạn giữ nguyên)
+    
+    // 1. Lấy Tasks (như cũ)
     const { data: tasksData, error: tasksError } = await supabase.from("tasks").select("*");
     if (tasksError) {
-      console.error("Lỗi lấy tasks:", tasksError);
+      console.error("Error fetching tasks:", tasksError);
       setLoading(false);
       return;
     }
@@ -116,37 +172,74 @@ export default function Home() {
       setLoading(false);
       return;
     }
+
     const taskIds = tasksData.map((t: any) => t.id);
+
+    // 2. Lấy Collaborators (như cũ)
     const { data: collabRows, error: collabError } = await supabase
       .from("task_collaborators")
       .select("task_id, user_id, role")
       .in("task_id", taskIds);
-    if (collabError) console.error("Lỗi lấy task_collaborators:", collabError);
-    // 1. Lấy ID của collaborators
-    const collaboratorUserIds = (collabRows || []).map((r: any) => r.user_id);
-    const ownerUserIds = tasksData.map((t: any) => t.user_id);
-    const allUserIds = Array.from(new Set([...collaboratorUserIds, ...ownerUserIds]));
+    if (collabError) console.error("Error fetching task_collaborators:", collabError);
 
+    // 3. LẤY SUBTASKS (MỚI)
+    const { data: subtasksData, error: subtasksError } = await supabase
+      .from("subtasks")
+      .select("*")
+      .in("task_id", taskIds);
+    if (subtasksError) console.error("Error fetching subtasks:", subtasksError);
+
+    // 4. Lấy TẤT CẢ User IDs (Owners, Collaborators, VÀ Assignees)
+    const ownerUserIds = tasksData.map((t: any) => t.user_id);
+    const collaboratorUserIds = (collabRows || []).map((r: any) => r.user_id);
+    const assigneeUserIds = (subtasksData || []).map((st: any) => st.assignee_id); // <-- MỚI
+
+    const allUserIds = Array.from(
+      new Set([...ownerUserIds, ...collaboratorUserIds, ...assigneeUserIds]) // <-- ĐÃ THÊM ASSIGNEE
+    );
+
+    // 5. Lấy TẤT CẢ Profiles (trong 1 lần)
     let profilesMap: Record<string, any> = {};
-    if (allUserIds.length > 0) { // <-- Dùng mảng allUserIds
+    if (allUserIds.length > 0) {
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("id, username, email, avatar_url")
-        .in("id", allUserIds); // <-- Dùng mảng allUserIds
-      if (profilesError) console.error("Lỗi lấy profiles:", profilesError);
-      else if (profilesData) profilesMap = profilesData.reduce((acc: any, p: any) => { acc[p.id] = p; return acc; }, {});
+        .in("id", allUserIds);
+      if (profilesError) console.error("Error fetching profiles:", profilesError);
+      else if (profilesData) {
+        profilesMap = profilesData.reduce((acc: any, p: any) => { acc[p.id] = p; return acc; }, {});
+      }
     }
 
+    // 6. Gộp tất cả lại
     const formatted = tasksData.map((task: any) => {
+      // Gắn collaborators (như cũ)
       const taskCollabs = (collabRows || []).filter((c: any) => c.task_id === task.id);
       const collaborators = taskCollabs.map((c: any) => ({
         user_id: c.user_id,
         role: c.role,
         profile: profilesMap[c.user_id] || null,
       }));
+      
+      // Gắn Owner profile (như cũ)
       const ownerProfile = profilesMap[task.user_id] || null;
-      return { ...task, start: new Date(task.start_time), end: new Date(task.end_time), collaborators, ownerProfile};
+
+      // GẮN SUBTASKS (MỚI)
+      const taskSubtasks = (subtasksData || []).filter((st: any) => st.task_id === task.id);
+      const subtasks = taskSubtasks.map((st: any) => ({
+        ...st,
+        assigneeProfile: profilesMap[st.assignee_id] || null, 
+      }));
+
+      return { 
+        ...task, 
+        start: new Date(task.start_time), 
+        end: new Date(task.end_time), 
+        collaborators, 
+        ownerProfile,
+      };
     });
+    
     setEvents(formatted);
     setLoading(false);
   };
@@ -162,7 +255,7 @@ export default function Home() {
       .eq('status', 'accepted'); 
 
     if (friendsError) {
-      console.error("Lỗi lấy danh sách bạn bè:", friendsError);
+      console.error("Error fetching friends list:", friendsError);
       return;
     }
     if (!friendsData || friendsData.length === 0) {
@@ -177,89 +270,89 @@ export default function Home() {
       .select('id, username, email, avatar_url')
       .in('id', friendIds);
     if (profilesError) {
-      console.error("Lỗi lấy thông tin profile bạn bè:", profilesError);
+      console.error("Error fetching friends' profile information:", profilesError);
       return;
     }
     if (profilesData) {
       const formattedFriends = profilesData.map((u: any) => ({
         id: u.id,
-        name: u.username || u.email || "Bạn ẩn danh",
+        name: u.username || u.email || "Anonymous",
         avatar_url: u.avatar_url || null ,
       }));
       setFriendsList(formattedFriends);
     }
   };
 
-
   const handleAddTask = async () => {
-    if (!newTask.title || !newTask.start || !newTask.end)
-      return alert("Vui lòng điền đủ thông tin!");
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const taskPayload = {
-        user_id: user.id,
-        title: newTask.title.trim(),
-        description: newTask.description?.trim() || "",
-        start_time: newTask.start,
-        end_time: newTask.end,
-        color: newTask.color || "#3174ad",
-        type: newTask.type || "work",
-        visibility: newTask.visibility || "PRIVATE",
-        completed: false,
-      };
-      const { data: taskData, error: taskError } = await supabase
-        .from("tasks")
-        .insert([taskPayload])
-        .select()
-        .single();
-      if (taskError) throw taskError;
+      if (!newTask.title || !newTask.start || !newTask.end)
+        return alert("Please fill in all required information!");
+      try {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      const newTaskId = taskData.id;
-      const promises: Promise<any>[] = [];
+        // 1. Insert Task
+        const taskPayload = {
+          user_id: user.id,
+          title: newTask.title.trim(),
+          description: newTask.description?.trim() || "",
+          start_time: newTask.start,
+          end_time: newTask.end,
+          color: newTask.color || "#3174ad",
+          type: newTask.type || "work",
+          visibility: newTask.visibility || "PRIVATE",
+          completed: false,
+        };
+        const { data: taskData, error: taskError } = await supabase
+          .from("tasks")
+          .insert([taskPayload])
+          .select()
+          .single();
+        if (taskError) throw taskError;
 
-      if (newTask.visibility === "PUBLIC" && newTask.collaborators?.length > 0) {
-        const collaboratorsPayload = newTask.collaborators.map((friendId: string) => ({
-          task_id: newTaskId,
-          user_id: friendId,
-          role: (newTask.collaboratorRoles && newTask.collaboratorRoles[friendId]) || "VIEWER", 
-        }));
-        promises.push(supabase.from("task_collaborators").insert(collaboratorsPayload) as any);
+        const newTaskId = taskData.id;
+        
+        // 2. Chuẩn bị Collaborators
+        if (newTask.visibility === "PUBLIC" && newTask.collaborators?.length > 0) {
+          const collaboratorsPayload = newTask.collaborators.map((friendId: string) => ({
+            task_id: newTaskId,
+            user_id: friendId,
+            role: (newTask.collaboratorRoles && newTask.collaboratorRoles[friendId]) || "VIEWER", 
+          }));
+          await supabase.from("task_collaborators").insert(collaboratorsPayload);
+        }
+        
+        // 3. Format profile 
+        const tempProfileMap: Record<string, any> = friendsList.reduce((acc, f) => {
+          acc[f.id] = { username: f.name, avatar_url: f.avatar_url };
+          return acc;
+        }, {});
+        tempProfileMap[user.id] = { username: myUsername || "Tôi", avatar_url: myAvatarUrl };
+
+        // 4. Thêm event vào state (đã xóa subtasks)
+        const addedEvent = {
+          ...taskData,
+          start: new Date(taskData.start_time),
+          end: new Date(taskData.end_time),
+          collaborators: [], 
+          ownerProfile: tempProfileMap[user.id]
+        };
+
+        setEvents((prev) => [...prev, addedEvent]);
+        setNewTask({
+          title: "", description: "", start: "", end: "", color: "#3174ad",
+          type: "work", visibility: "PRIVATE", collaborators: [],
+          collaboratorRoles: {},
+        });
+      } catch (error) {
+        console.error("❌ Error creating task:", error);
+        alert("Unable to add task, please try again!");
+      } finally {
+        setLoading(false);
       }
-
-      if (newTask.subtasks?.length > 0) {
-        const subtasksPayload = newTask.subtasks.map((st: any) => ({
-          task_id: newTaskId,
-          title: st.title?.trim(),
-          assignee_id: st.assignee_id || user.id,
-          is_completed: false,
-        }));
-        promises.push(supabase.from("subtasks").insert(subtasksPayload) as any);
-      }
-      await Promise.all(promises);
-      const addedEvent = {
-        ...taskData,
-        start: new Date(taskData.start_time),
-        end: new Date(taskData.end_time),
-      };
-      setEvents((prev) => [...prev, addedEvent]);
-      setNewTask({
-        title: "", description: "", start: "", end: "", color: "#3174ad",
-        type: "work", visibility: "PRIVATE", collaborators: [], subtasks: [],
-        collaboratorRoles: {},
-      });
-    } catch (error) {
-      console.error("❌ Lỗi khi tạo task:", error);
-      alert("Không thể thêm task, vui lòng thử lại!");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+    };
 
   const handleSelectSlot = (slotInfo: any) => {
-    // ... (Code của bạn giữ nguyên)
     setSelectedEvent(null); 
     setHoveredEvent(null);  
     setNewTask({
@@ -273,7 +366,6 @@ export default function Home() {
   };
 
   const handleMouseLeave = () => {
-    // ... (Code của bạn giữ nguyên)
     timerRef.current = setTimeout(() => {
       setSelectedEvent(null);
     }, 300);
@@ -281,19 +373,19 @@ export default function Home() {
 
 
   const handleEventDrop = async ({ event, start, end, isAllDay }: any) => {
-    // kiếm tra xem currentUser có phải là chủ sở hữu của event không
+    // Check if currentUser is the owner of the event
     if (!currentUser || event.user_id !== currentUser.id) {
-      alert("Chỉ chủ sở hữu mới có thể thay đổi thời gian của task!");
+      alert("Only the owner can change the task time!");
       // Dừng hàm lại, không cập nhật state và không gọi Supabase
       // Giao diện calendar sẽ tự động snap event về vị trí cũ
-      return; 
+      return;   
     }
     const updatedEvents = events.map((existingEvent) =>
       existingEvent.id === event.id ? { ...existingEvent, start, end, isAllDay } : existingEvent
     );
     setEvents(updatedEvents);
     const { error } = await supabase
-      .from("tasks")
+      .from("tasks") 
       .update({
         start_time: start.toISOString(),
         end_time: end.toISOString(),
@@ -303,32 +395,27 @@ export default function Home() {
   };
 
   const eventStyleGetter = (event: any) => {
-    // ... (Code của bạn giữ nguyên)
     const backgroundColor = event.completed ? "#acfab8ff" : event.color || "#285882ff";
     return { style: { backgroundColor } };
   };
 
   const taskTypeIcons: Record<string, string> = {
-    // ... (Code của bạn giữ nguyên)
     work: "💼", study: "📚", outdoor: "🌳", personal: "🧘", other: "🔹",
   };
 
   const handleEventHover = (event: any) => {
-    // ... (Code của bạn giữ nguyên)
     if (!selectedEvent) { 
       setHoveredEvent(event);
     }
   };
 
   const handleEventMouseLeave = () => {
-    // ... (Code của bạn giữ nguyên)
     if (!selectedEvent) {
       setHoveredEvent(null);
     }
   };
 
   const EventComponent = ({ event }: { event: any }) => {
-    // ... (Code của bạn giữ nguyên)
     const start = new Date(event.start).toLocaleString();
     const end = new Date(event.end).toLocaleString();
     return (
@@ -359,107 +446,20 @@ export default function Home() {
 
   return (
     <div className={styles.page}>
-
-      
-
-      {/* Vì BackgroundCustomizer được định nghĩa BÊN TRONG Home(),
-        nó có thể truy cập trực tiếp state 'session' của Home() 
-      */}
-      <BackgroundCustomizer session={session} />
+      <BackgroundCustomizer session={session} streak={streak} />
       {/* Top-right avatar button linking to Profile */}
-      {showInlineProfile && isAuthenticated && (
-        <>
-          <div
-            onClick={() => setShowProfileCard((s) => !s)}
-            style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '6px 12px', borderRadius: 999, border: '1px solid #e3c9ef', background: 'rgba(255,255,255,0.7)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', backdropFilter: 'blur(4px) saturate(1.1)' }}
-            title="My Profile"
-          >
-            <span style={{ fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span className="wave-hand" aria-hidden>👋</span>
-              <span className="blink-greet">Hello{myUsername ? `, ${myUsername}` : ''}</span>
-            </span>
-            <img
-              src={myAvatarUrl || 'https://placehold.co/64x64?text=🙂'}
-              alt="me"
-              width={64}
-              height={64}
-              style={{ borderRadius: '50%', border: '2px solid #e3c9ef', objectFit: 'cover', transition: 'transform 0.2s ease' }}
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/64x64?text=%F0%9F%99%82'; }}
-              onMouseOver={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.03)'; }}
-              onMouseOut={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1)'; }}
-            />
-          </div>
-          {showProfileCard && (
-            <div
-              style={{ position: 'fixed', top: 96, right: 16, zIndex: 1001, minWidth: 260, borderRadius: 12, border: '1px solid #e3c9ef', background: 'rgba(255,255,255,0.9)', boxShadow: '0 8px 20px rgba(0,0,0,0.12)', backdropFilter: 'blur(6px) saturate(1.1)', padding: 12 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Link href="/profile" title="Open profile to edit" onClick={() => setShowProfileCard(false)}>
-                  <img
-                    src={myAvatarUrl || 'https://placehold.co/56x56?text=🙂'}
-                    alt="me"
-                    width={56}
-                    height={56}
-                    style={{ borderRadius: '50%', border: '2px solid #e3c9ef', objectFit: 'cover', cursor: 'pointer' }}
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/56x56?text=%F0%9F%99%82'; }}
-                  />
-                </Link>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <strong style={{ fontSize: 16 }}>{myUsername || currentUser?.user_metadata?.full_name || 'Người dùng'}</strong>
-                  <span style={{ fontSize: 13, color: '#666' }}>{currentUser?.email || currentUser?.user_metadata?.email}</span>
-                </div>
-              </div>
-              {myBio && (
-                <div style={{ marginTop: 8, fontSize: 13, color: '#444', whiteSpace: 'pre-wrap' }}>
-                  {myBio}
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <Link href="/profile/view" style={{ flex: 1 }} onClick={() => setShowProfileCard(false)}>
-                  <div style={{ width: '100%', textAlign: 'center', padding: '8px 10px', borderRadius: 8, border: '1px solid #e3c9ef', background: '#f8f5fb', cursor: 'pointer' }}>
-                    View Profile
-                  </div>
-                </Link>
-                <div style={{ flex: 1 }}>
-                  <LogoutButton session={session} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #e3c9ef', background: '#ffecef', color: '#d7263d', cursor: 'pointer', fontWeight: 600 }}>
-                    Logout
-                  </LogoutButton>
-                </div>
-              </div>
-            </div>
-          )}
-          <style jsx>{`
-            @keyframes wave {
-              0% { transform: rotate(0deg); }
-              15% { transform: rotate(14deg); }
-              30% { transform: rotate(-8deg); }
-              45% { transform: rotate(14deg); }
-              60% { transform: rotate(-4deg); }
-              75% { transform: rotate(10deg); }
-              100% { transform: rotate(0deg); }
-            }
-            .wave-hand {
-              display: inline-block;
-              transform-origin: 70% 70%;
-              animation: wave 1.8s ease-in-out infinite;
-            }
-            @keyframes blink {
-              0%, 50%, 100% { opacity: 1; }
-              25%, 75% { opacity: 0.7; }
-            }
-            @keyframes colorChange {
-              0%   { color: #e4b5e8; }
-              25%  { color: #94bbe9; }
-              50%  { color: #b8f1eb; }
-              75%  { color: #f2dcf4; }
-              100% { color: #c7e1ff; }
-            }
-            .blink-greet {
-              animation: blink 3.2s ease-in-out infinite, colorChange 6s linear infinite;
-            }
-          `}</style>
-        </>
+      {isAuthenticated && streak > 0 && (
+        <div
+          className={styles.streakContainer}
+          title={`Login streak: ${streak} days`}
+        >
+          <span className={styles.streakFlame}>
+            🔥
+          </span>
+          <span className={styles.streakNumber}>
+            {streak}
+          </span>
+        </div>
       )}
 
       {/* Profile UI moved into the sidebar below */}
@@ -538,12 +538,11 @@ export default function Home() {
 // -----------------------------------------------------------------------------
 
   // Custom bg và các cài đặt khác
-function BackgroundCustomizer({ session }: { session: Session | null }) {
-    // Component này được định nghĩa BÊN TRONG Home(),
-    // nên nó có thể truy cập state 'session' của Home()
-    
-    const [bgColor, setBgColor] = useState("#ffffff");
+function BackgroundCustomizer({ session, streak }: { session: Session | null, streak: number }) {
+    const [bgColor, setBgColor] = useState("#efe4e4ff");
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+
 
     useEffect(() => {
       if (!document.body.style.backgroundImage || document.body.style.backgroundImage === 'none') {
@@ -628,7 +627,7 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
 
         <button 
           onClick={toggleSidebar} 
-          title="Mở Tùy chỉnh nền"
+          title="Edit Interface"
           className={styles.toggleButton} 
           style={{ 
             transform: isSidebarOpen ? 'rotate(0deg)' : 'rotate(0deg)', 
@@ -637,7 +636,7 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
           {HamburgerIcon} 
         </button>
 
-        <div 
+          <div 
           className={styles.sidebar} 
           style={{ 
             transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
@@ -645,29 +644,41 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
             pointerEvents: isSidebarOpen ? 'auto' : 'none', 
           }}
         >
-          <div className={styles.sidebarHeader}>
-              Tùy Chỉnh Giao Diện
+          {/* ==== 2. THÊM ONCLICK VÀ MŨI TÊN (ARROW) ==== */}
+          <div 
+            className={styles.dashboardHeader} // <-- ĐÃ THAY TỪ sidebarHeader sang dashboardHeader
+            onClick={() => setIsCustomizeOpen(!isCustomizeOpen)} 
+          >
+            <span>Customize the interface</span> { /* Bọc text */ }
+            <span 
+              className={`${styles.customizeArrow} ${isCustomizeOpen ? styles.open : ''}`}
+            >
+            </span> 
           </div>
-          <div className={styles.menuItem}>
-              <label title="Chọn màu nền" className={styles.labelWrapper}>
-                  <span className={styles.linkText}>Chọn Màu Nền</span>
-                  <input type="color" value={bgColor} onChange={handleColorChange} style={{ display: 'none' }} />
-                  <div className={styles.actionPlus} title="Mở bảng chọn màu" style={{ border: `2px solid ${bgColor}` }}>
-                    +
-                  </div>
-              </label>
-          </div>
-          <div className={styles.menuItem}>
-              <label title="Upload ảnh nền" className={styles.labelWrapper}>
-                  <span className={styles.linkText}>Upload Ảnh Nền</span>
-                  <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }}/>
-                  <div className={styles.actionPlus} title="Tải lên">
-                    +
-                  </div>
-              </label>
+          <div 
+            className={`${styles.customizeContentWrapper} ${isCustomizeOpen ? styles.open : ''}`}
+          >
+            {/* Hai mục này giờ nằm bên trong wrapper */}
+            <div className={styles.menuItem}>
+                <label title="Choose background color" className={styles.labelWrapper}>
+                    <span className={styles.linkText}>Background Color</span>
+                    <input type="color" value={bgColor} onChange={handleColorChange} style={{ display: 'none' }} />
+                    <div className={styles.actionPlus} title="Open color picker">
+                      +
+                    </div>
+                </label>
+            </div>
+            <div className={styles.menuItem}>
+                <label title="Upload background image" className={styles.labelWrapper}>
+                    <span className={styles.linkText}>Upload Background Image</span>
+                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }}/>
+                    <div className={styles.actionPlus} title="Upload">
+                      +
+                    </div>
+                </label>
+            </div>
           </div>
 
-          {/* Link mở trang Profile riêng */}
           <Link 
               href="/profile/view" 
               className={styles.dashboardHeader}
@@ -690,9 +701,8 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
           </Link>
           <div className={styles.logoutContainer}> 
               
-              {/* <--- SỬA ĐỔI 4: TRUYỀN session VÀO NÚT LOGOUT */}
               <LogoutButton
-                session={session} // <--- TRUYỀN SESSION VÀO ĐÂY
+                session={session} 
                 style={{
                   color: 'white',
                   border: 'none',
@@ -702,7 +712,7 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
                   fontWeight: 'bold',
                 }}
               >
-                 Đăng Xuất
+                 Loggout
               </LogoutButton>
           </div>
           </div>
@@ -710,7 +720,6 @@ function BackgroundCustomizer({ session }: { session: Session | null }) {
       </>
     );
   }
-
 
 function TaskDetailsView({ event, supabase, currentUser, myUsername, myAvatarUrl }: { event: any, supabase: any, currentUser: any, myUsername: string, myAvatarUrl: string }) {
   const taskTypeIcons = { work: "💼", study: "📚", outdoor: "🌳", personal: "🧘", other: "🔹" };
@@ -777,26 +786,6 @@ function TaskDetailsView({ event, supabase, currentUser, myUsername, myAvatarUrl
 
 
 function AddTaskForm({ newTask, setNewTask, handleAddTask,friendsList = [], currentUser }: any) {
-  // Thêm subtask
-  const addSubtaskField = () => {
-    setNewTask({
-      ...newTask,
-      subtasks: [...newTask.subtasks, { title: "", assignee_id: currentUser?.id }]
-    });
-  };
-
-  // --- HELPER: Cập nhật nội dung subtask ---
-  const updateSubtask = (index: number, field: string, value: any) => {
-    const updatedSubtasks = [...newTask.subtasks];
-    updatedSubtasks[index] = { ...updatedSubtasks[index], [field]: value };
-    setNewTask({ ...newTask, subtasks: updatedSubtasks });
-  };
-
-  // --- HELPER: Xóa subtask ---
-  const removeSubtask = (index: number) => {
-    const updatedSubtasks = newTask.subtasks.filter((_: any, i: number) => i !== index);
-    setNewTask({ ...newTask, subtasks: updatedSubtasks });
-  };
 
   // Tạo danh sách những người có thể assign task (Gồm mình + bạn bè đã chọn)
   const assignableUsers = [
@@ -855,35 +844,35 @@ function AddTaskForm({ newTask, setNewTask, handleAddTask,friendsList = [], curr
           value={newTask.type}
           onChange={(e) => setNewTask({ ...newTask, type: e.target.value })}
         >
-          <option value="work">Công việc</option>
-          <option value="study">Học tập</option>
-          <option value="outdoor">Ngoài trời</option>
-          <option value="personal">Cá nhân</option>
-          <option value="other">Khác</option>
+          <option value="work">Work</option>
+          <option value="study">Study</option>
+          <option value="outdoor">Outdoor</option>
+          <option value="personal">Personal</option>
+          <option value="other">Other</option>
         </select>
       </label>
       {/* Chọn chế độ */}
       <div style={{ marginTop: '15px', marginBottom: '15px' }}>
-        <label style={{ fontWeight: 'bold' }}>Chế độ:</label>
+        <label style={{ fontWeight: 'bold' }}>Mode:</label>
         <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
           <button 
             className={newTask.visibility === 'PRIVATE' ? styles.save : styles.cancel}
             onClick={() => setNewTask({ ...newTask, visibility: 'PRIVATE', collaborators: [] })}
           >
-            🔒 Cá nhân
+            Private
           </button>
           <button 
             className={newTask.visibility === 'PUBLIC' ? styles.save : styles.cancel}
             onClick={() => setNewTask({ ...newTask, visibility: 'PUBLIC' })}
           >
-            👥 Hợp tác
+            Collaborate
           </button>
         </div>
       </div>
-      {/* Chọn bạn bè (nếu chế độ PUBLIC) */}
+      {/* Choose friends (if mode is PUBLIC) */}
       {newTask.visibility === 'PUBLIC' && (
         <div style={{ marginBottom: '15px', padding: '10px', border: '1px dashed #ccc', borderRadius: '6px' }}>
-          <label style={{ fontWeight: 'bold' }}>Mời bạn bè tham gia:</label>
+          <label style={{ fontWeight: 'bold' }}>Invite friends:</label>
           <div style={{ maxHeight: '100px', overflowY: 'auto', marginTop: '5px' }}>
             {friendsList.map((friend: any) => (
               <div key={friend.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
@@ -929,10 +918,10 @@ function AddTaskForm({ newTask, setNewTask, handleAddTask,friendsList = [], curr
                         },
                       });
                     }}
-                    style={{ marginLeft: 'auto', fontSize: '10px', padding: '2px', borderRadius: '4px' }}
+                    style={{ marginLeft: 60, fontSize: '12px', padding: '5px', borderRadius: '4px',color: "#666" }}
                   >
-                    <option value="VIEWER">Chỉ xem</option>
-                    <option value="EDITOR">Chỉnh sửa</option>
+                    <option value="VIEWER">View only</option>
+                    <option value="EDITOR">Edit</option>
                   </select>
                 )}
               </div>
@@ -940,42 +929,6 @@ function AddTaskForm({ newTask, setNewTask, handleAddTask,friendsList = [], curr
           </div>
         </div>
       )}
-      {/* Subtasks */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <label style={{ fontWeight: 'bold' }}>Công việc nhỏ (Subtasks):</label>
-          <button onClick={addSubtaskField} style={{ fontSize: '12px', padding: '2px 8px', cursor: 'pointer' }}>+ Thêm</button>
-        </div>
-        
-        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {newTask.subtasks?.map((st: any, index: number) => (
-            <div key={index} style={{ display: 'flex', gap: '5px' }}>
-              {/* Tên subtask */}
-              <input
-                type="text"
-                placeholder="Tên việc nhỏ..."
-                value={st.title}
-                onChange={(e) => updateSubtask(index, 'title', e.target.value)}
-                style={{ flex: 1 }}
-              />
-              {/* Dropdown chọn người làm */}
-              <select
-                value={st.assignee_id}
-                onChange={(e) => updateSubtask(index, 'assignee_id', e.target.value)}
-                className={styles.subtaskSelect}
-                title={`Assign subtask ${st.title || 'New subtask'}`}
-                aria-label={`Assign subtask ${st.title || 'New subtask'}`}
-              >
-                 {assignableUsers.map((u: any) => (
-                   <option key={u.id} value={u.id}>{u.name}</option>
-                 ))}
-              </select>
-              {/* Nút xoá dòng này */}
-              <button onClick={() => removeSubtask(index)} style={{ color: 'red', border: 'none', background: 'none', cursor: 'pointer' }}>✕</button>
-            </div>
-          ))}
-        </div>
-      </div>
 
       <div className={styles.buttonGroupadd}>
         <button className={styles.save} onClick={handleAddTask}>Add Task</button>
@@ -1067,10 +1020,8 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
     setLocalCollabRoles(prev => {
       const newRoles = { ...prev };
       if (newRoles[userId]) {
-        // Nếu đã có -> Xóa
         delete newRoles[userId];
       } else {
-        // Nếu chưa có -> Thêm (mặc định là VIEWER)
         newRoles[userId] = 'VIEWER'; 
       }
       return newRoles;
@@ -1085,13 +1036,13 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
   };
 
   const handleDelete = async () => {
-    if (window.confirm(`Bạn có chắc muốn xóa công việc "${selectedEvent.title}" không?`)) {
+    if (window.confirm(`Are you sure you want to delete the task "${selectedEvent.title}"?`)) {
       const { error } = await supabase.from("tasks").delete().eq("id", selectedEvent.id);
       if (error) {
-        console.error("Lỗi khi xóa công việc:", error);
-        alert("Xóa thất bại!");
+        console.error("Error deleting task:", error);
+        alert("Delete failed!");
       } else {
-        // Xóa collaborators liên quan (cleanup) - optional
+        // Delete related collaborators (cleanup) - optional
         await supabase.from("task_collaborators").delete().eq("task_id", selectedEvent.id);
         setEvents((prev) => prev.filter((ev) => ev.id !== selectedEvent.id));
         setShowModal(false);
@@ -1121,14 +1072,14 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
         .eq("id", editingEvent.id);
 
       if (updateError) {
-        console.error("Lỗi khi cập nhật công việc:", updateError);
-        alert("Lưu thay đổi thất bại. Vui lòng thử lại.");
+        console.error("Error", updateError);
+        alert("Failed. Check console for details.");
         return;
       }
 
       const { error: delError } = await supabase.from("task_collaborators").delete().eq("task_id", editingEvent.id);
       if (delError) {
-        console.error("Không xóa được collaborators cũ:", delError);
+        console.error("Error deleting old collaborators:", delError);
       }
 
       const localCollaboratorIds = Object.keys(localCollabRoles);
@@ -1168,10 +1119,8 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
         start: startDate,
         end: endDate,
         collaborators,
-        ownerProfile: editingEvent.ownerProfile // Giữ lại ownerProfile đã fetch
+        ownerProfile: editingEvent.ownerProfile, // Giữ lại ownerProfile đã fetch
       };
-
-      // Cập nhật events ở parent
       setEvents((prev) => prev.map(ev => ev.id === finalEventToSave.id ? finalEventToSave : ev));
 
       // Logic cộng điểm (giữ nguyên)
@@ -1203,7 +1152,7 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
       <h3>{isOwner ? "Edit Task" : "View Task Details"}</h3>
       {!isOwner && (
         <p style={{ fontStyle: 'italic', color: '#666', fontSize: '0.9em' }}>
-          Bạn chỉ có thể xem task này vì bạn không phải là người tạo.
+          You only have view access because you are not the owner.
         </p>
       )}
       <div style={{ marginTop: 12 }}>
@@ -1243,7 +1192,11 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
       <label>
         Type:
         <select name="type" value={editingEvent.type} onChange={handleChange} disabled={!isOwner}>
-          {/* ... options ... */}
+          <option value="work">Work</option>
+          <option value="study">Study</option>
+          <option value="outdoor">Outdoor</option>
+          <option value="personal">Personal</option>
+          <option value="other">Other</option>
         </select>
       </label>
 
@@ -1357,12 +1310,8 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
         currentUser={currentUser}
         myUsername={myUsername}
         myAvatarUrl={myAvatarUrl}
-        // Không có 'showInput={false}' -> Mặc định là 'true' -> Hiện ô nhập
       />
 
-      {/* VÔ HIỆU HÓA CÁC NÚT HÀNH ĐỘNG
-        Chỉ để lại nút "Cancel" là hoạt động
-      */}
       <div className={styles.buttonGroup}>
         <button className={styles.saveBtn} onClick={handleSave} disabled={!isOwner}>Save</button>
         <button className={styles.deleteBtn} onClick={handleDelete} disabled={!isOwner}>Delete</button>
@@ -1373,17 +1322,10 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
 }
 
 
-// File: app/calendar/page.tsx
-// ... (Component TaskComments ở cuối file)
-
 function TaskComments({ supabase, task, currentUser, myUsername, myAvatarUrl, showInput: initialShowInput = true }: { supabase: any, task: any, currentUser: any, myUsername: string, myAvatarUrl: string, showInput?: boolean }) {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
-  
-  // 'showInput' đã được chuyển thành state nội bộ, nhưng chúng ta không cần nó. 
-  // Hãy giữ nguyên logic prop của bạn.
-  // const [showInput, setShowInput] = useState(initialShowInput); // <-- Dòng này không cần thiết nếu bạn dùng initialShowInput
 
   // Hàm lấy comments
   const fetchComments = async () => {
@@ -1416,7 +1358,7 @@ function TaskComments({ supabase, task, currentUser, myUsername, myAvatarUrl, sh
       .in('id', userIds);
 
     if (profilesError) {
-      console.error("Lỗi lấy profiles:", profilesError);
+      console.error("Error to fetch profiles:", profilesError);
     }
 
     // Gộp 2 kết quả lại
@@ -1518,3 +1460,4 @@ function TaskComments({ supabase, task, currentUser, myUsername, myAvatarUrl, sh
     </div>
   );
 }
+
