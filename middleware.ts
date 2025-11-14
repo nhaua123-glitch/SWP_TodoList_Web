@@ -72,8 +72,16 @@ export async function middleware(request: NextRequest) {
   const hasValidSession = !!session;
 
 
-  // 🧱 Bảo vệ API private
+  // 🧱 Bảo vệ API private (ngoại trừ các endpoint public qua email)
+  const emailPublicEndpoints = [
+    "/api/private/friends/accept",
+    "/api/private/friends/reject",
+  ];
   if (pathname.startsWith("/api/private")) {
+    // Cho phép truy cập công khai các đường dẫn xác nhận lời mời qua email
+    if (emailPublicEndpoints.some((p) => pathname.startsWith(p))) {
+      return response;
+    }
     if (!hasValidSession) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
