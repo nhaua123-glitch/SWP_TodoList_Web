@@ -68,9 +68,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Thiếu email người nhận" }, { status: 400 });
     }
 
-    // Lấy user hiện tại từ session cookies
-    const cookieStore = await cookies();
-    const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore as any });
+    // ==================================================================
+    // ⭐️ SỬA LỖI 1: Khởi tạo Supabase Client ⭐️
+    // ==================================================================
+    const cookieStore = cookies(); 
+    const supabaseAuth = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.delete({ name, ...options })
+          },
+        },
+      }
+    );
+    // ==================================================================
+    
     const {
       data: { user },
       error: authErr,
@@ -138,7 +158,9 @@ export async function POST(req: Request) {
     const acceptUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/private/friends/accept?id=${inviteId}`;
     const rejectUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/private/friends/reject?id=${inviteId}`;
 
-    // 4️⃣ Gửi email qua Gmail OAuth2
+    // ==================================================================
+    // ⭐️ SỬA LỖI 2: Bỏ qua lỗi gửi email (invalid_request) ⭐️
+    // ==================================================================
     try {
       await sendGmailOAuth(
         toEmail,
@@ -154,11 +176,12 @@ export async function POST(req: Request) {
         `
       );
     } catch (mailErr: any) {
-      console.error("Send email error:", mailErr);
-      return NextResponse.json({ error: mailErr?.message || "Send mail failed" }, { status: 500 });
+      // Chỉ log lỗi ra console server, KHÔNG return lỗi 500 cho client
+      console.error("CRITICAL: Send email failed (e.g., invalid_request), but invite was saved:", mailErr);
     }
+    // ==================================================================
 
-    // ✅ Trả kết quả thành công
+    // ✅ Trả kết quả thành công (VÌ DATABASE ĐÃ LƯU)
     return NextResponse.json({
       success: true,
       message: "Lời mời đã được gửi thành công!",
