@@ -1090,7 +1090,7 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
 
         const { error: insError } = await supabase.from("task_collaborators").insert(payload);
         if (insError) {
-          console.error("Lỗi khi insert collaborators:", insError);
+          console.error("Error insert collaborators:", insError);
         }
       }
 
@@ -1427,25 +1427,32 @@ function TaskComments({ supabase, task, currentUser, myUsername, myAvatarUrl, sh
       <h4>Comment</h4>
       
       {/* Danh sách comments */}
-      <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: 10, padding: 5 }}>
+      <div style={{ 
+          maxHeight: '150px',     
+          overflowY: 'auto',       
+          marginBottom: 10, 
+          padding: '8px',          
+          borderRadius: '5px',     
+          background: '#f5f2f2ff' 
+      }}>
         {loading && <p>Loading...</p>}
         {!loading && comments.length === 0 && <p style={{ color: '#888', fontSize: '0.9em' }}>No comments yet.</p>}
         
         {comments.map((comment) => (
-          <div key={comment.id} style={{ marginBottom: 10, paddingBottom: 5, borderBottom: '1px solid #f0f0f0' }}>
-            <strong style={{ fontSize: '0.9em' }}>
+          <div key={comment.id} style={{ marginBottom: 6, paddingBottom: 5, borderBottom: '1px solid #f0f0f0' }}>
+            <strong style={{ fontSize: '0.9em' , color: '#535353ff'}}>
               {/* Sửa lại để kiểm tra 'profiles' tồn tại */}
               {comment.profiles?.username || 'Anonymous user'}
             </strong>
-            <p style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{comment.content}</p>
-            <small style={{ color: '#999', fontSize: '0.75em' }}>
+            <p style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap', color: '#6a6e7c' }}>{comment.content}</p>
+            <small style={{ color: '#dad7d7ff', fontSize: '0.75em' }}>
               {new Date(comment.created_at).toLocaleString()}
             </small>
           </div>
         ))}
       </div>
       {initialShowInput && (
-        <form onSubmit={handleSubmitComment} style={{ display: 'flex', gap: 8 }}>
+        <form onSubmit={handleSubmitComment} style={{ display: 'flex', gap: 8, color: '#979494ff' }}>
           <input
             type="text"
             value={newComment}
@@ -1453,7 +1460,7 @@ function TaskComments({ supabase, task, currentUser, myUsername, myAvatarUrl, sh
             placeholder="Comment..."
             style={{ flex: 1 }}
           />
-          <button type="submit" className={styles.saveBtn} style={{ padding: '6px 12px' }}>Send</button>
+          <button type="submit" className={styles.saveBtn} style={{ padding: '0px 12px' }}>Send</button>
         </form>
       )}
     </div>
