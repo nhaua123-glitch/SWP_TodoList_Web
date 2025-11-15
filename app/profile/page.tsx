@@ -202,7 +202,7 @@ export default function MyProfilePage() {
             color: '#e67e00', // Màu cam
             fontWeight: 500
           }}>
-            🔥 Chuỗi hiện tại: <strong>{streak} ngày</strong>
+            🔥 Streak: <strong>{streak} days</strong>
           </div>
         )}
         <label className={styles.label}>Choose animal avatar (SVG)</label>

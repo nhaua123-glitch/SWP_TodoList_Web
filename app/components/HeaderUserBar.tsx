@@ -9,6 +9,7 @@ export default function HeaderUserBar() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
+  const [streak, setStreak] = useState(0);
   const [open, setOpen] = useState(false);
 
   const supabase = createBrowserClient(
@@ -24,12 +25,13 @@ export default function HeaderUserBar() {
       if (user) {
         const { data: prof } = await supabase
           .from("profiles")
-          .select("avatar_url, username, bio")
+          .select("avatar_url, username, bio, current_streak") 
           .eq("id", user.id)
           .maybeSingle();
         if (prof?.avatar_url) setAvatarUrl(prof.avatar_url);
         if (prof?.username) setUsername(prof.username);
         if (typeof prof?.bio === "string") setBio(prof.bio);
+        if (prof?.current_streak) setStreak(prof.current_streak);
       }
     };
     load();
@@ -39,42 +41,97 @@ export default function HeaderUserBar() {
 
   return (
     <>
-      <div
-        className="helloPill"
-        onClick={() => setOpen((s) => !s)}
+    <div 
         style={{
           position: 'fixed',
           top: 16,
           right: 16,
           zIndex: 1000,
           display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          cursor: 'pointer',
-          padding: '8px 12px',
-          borderRadius: 999,
-          border: '1px solid #e3c9ef',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.85), rgba(248,245,251,0.9))',
-          boxShadow: '0 8px 20px rgba(0,0,0,0.10)',
-          backdropFilter: 'blur(6px) saturate(1.1)'
+          flexDirection: 'column', // Xếp dọc: Hello trên, Streak dưới
+          alignItems: 'flex-end',   // Căn lề phải
+          gap: 8,                   // Khoảng cách giữa 2 cục
+          pointerEvents: 'none',     // Để wrapper trong suốt không chặn click chuột
         }}
-        title="My Profile"
       >
-        <span style={{ fontSize: 16, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span aria-hidden>👋</span>
-          <span className="blink-greet">Hello{username ? `, ${username}` : ''}</span>
-        </span>
-        <img
-          src={avatarUrl || 'https://placehold.co/64x64?text=🙂'}
-          alt="me"
-          width={40}
-          height={40}
-          style={{ borderRadius: '50%', border: '2px solid #e3c9ef', objectFit: 'cover', transition: 'transform 0.2s ease' }}
-          onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/64x64?text=%F0%9F%99%82'; }}
-          onMouseOver={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.05)'; }}
-          onMouseOut={(e) => { (e.currentTarget as HTMLImageElement).style.transform = 'scale(1)'; }}
-        />
+        
+        {/* 🟢 CỤC 1: HELLO + AVATAR */}
+        <div
+          className="helloPill"
+          onClick={() => setOpen((s) => !s)}
+          style={{
+            pointerEvents: 'auto', // Cho phép click vào cục này
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'pointer',
+            padding: '6px 6px 6px 14px',
+            borderRadius: 999,
+            // 👇 Style riêng của cục Hello
+            border: '1px solid #e3c9ef',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,245,251,0.95))',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+            backdropFilter: 'blur(6px)'
+          }}
+          title="My Profile"
+        >
+          <span style={{ fontSize: 16, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span aria-hidden>👋</span>
+            <span className="blink-greet">Hello{username ? `, ${username}` : ''}</span>
+          </span>
+          <img
+            src={avatarUrl || 'https://placehold.co/64x64?text=🙂'}
+            alt="me"
+            width={40}
+            height={40}
+            style={{ borderRadius: '50%', border: '2px solid #e3c9ef', objectFit: 'cover' }}
+          />
+        </div>
+
+        {/* 🔥 CỤC 2: STREAK (Nằm riêng biệt ở dưới) */}
+        {streak > 0 && (
+          <div 
+            className="streakBadge"
+            title={`${streak} day streak!`}
+            style={{
+              pointerEvents: 'auto',
+              display: 'flex',
+              flexDirection: 'column', // Xếp dọc: Lửa trên, số dưới
+              alignItems: 'center',    // Căn giữa
+              gap: 0,                  // Khoảng cách giữa lửa và số sát nhau
+              marginRight: 10,         // Căn chỉnh vị trí ngang cho cân với avatar ở trên
+              marginTop: 8            // Kéo lên một chút cho gần cục Hello hơn
+            }}
+          >
+            {/* Ngọn lửa to */}
+            <span 
+              className="fireIcon"
+              style={{ 
+                fontSize: '40px',      
+                lineHeight: 1,
+                cursor: 'default'
+              }}
+            >
+              🔥
+            </span>
+            
+            {/* Số ngày nhỏ ở dưới */}
+            <span 
+              style={{ 
+                fontSize: '10px',        // Số nhỏ lại
+                fontWeight: 800,         // Chữ đậm
+                color: '#e57373',        // Màu đỏ nhạt
+                padding: '1px 6px',      // Padding nhỏ
+                marginTop: 2,            // Cách lửa một xíu
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {streak} 
+            </span>
+          </div>
+        )}
       </div>
+
       {open && (
         <div
           style={{ position: 'fixed', top: 80, right: 16, zIndex: 1001, minWidth: 280, borderRadius: 12, border: '1px solid #e3c9ef', background: 'rgba(255,255,255,0.95)', boxShadow: '0 12px 28px rgba(0,0,0,0.14)', backdropFilter: 'blur(8px) saturate(1.2)', padding: 14 }}
@@ -158,6 +215,36 @@ export default function HeaderUserBar() {
           animation: blink 3.2s ease-in-out infinite, textPastel 8s linear infinite;
           font-weight: 700;
           text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+        }
+
+        .streakBadge {
+          animation: fadeIn 0.5s ease-out;
+        }
+
+        /* ... Các css cũ ... */
+
+        /* 🔥 Hiệu ứng phập phồng */
+        @keyframes burn {
+          0% {
+            transform: scale(1) rotate(0deg);
+            filter: drop-shadow(0 0 2px rgba(255, 100, 100, 0.2));
+          }
+          50% {
+            transform: scale(1.15) rotate(-2deg); /* Phình to ra */
+            filter: drop-shadow(0 0 10px rgba(255, 69, 0, 0.5)); /* Phát sáng mạnh */
+          }
+          100% {
+            transform: scale(1) rotate(2deg);
+            filter: drop-shadow(0 0 2px rgba(255, 100, 100, 0.2));
+          }
+        }
+
+        .fireIcon {
+          display: inline-block;
+          /* Animation chạy liên tục, mượt mà */
+          animation: burn 0.8s infinite alternate ease-in-out;
+          /* Neo ở đáy để lửa bùng lên từ dưới */
+          transform-origin: center bottom; 
         }
       `}</style>
     </>
