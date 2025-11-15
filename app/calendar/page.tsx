@@ -329,12 +329,30 @@ export default function Home() {
         }, {});
         tempProfileMap[user.id] = { username: myUsername || "Tôi", avatar_url: myAvatarUrl };
 
-        // 4. Thêm event vào state (đã xóa subtasks)
+        // Tạo danh sách collaborators cho State (để hiển thị ngay lập tức)
+        let newCollaboratorsForState: any[] = [];
+        
+        if (newTask.visibility === "PUBLIC" && newTask.collaborators?.length > 0) {
+           newCollaboratorsForState = newTask.collaborators.map((friendId: string) => {
+             // Tìm thông tin bạn bè trong danh sách friendsList để hiển thị avatar/tên
+             const friendInfo = friendsList.find((f: any) => f.id === friendId);
+             
+             return {
+               user_id: friendId,
+               role: (newTask.collaboratorRoles && newTask.collaboratorRoles[friendId]) || "VIEWER",
+               profile: friendInfo ? { username: friendInfo.name, avatar_url: friendInfo.avatar_url } : null
+             };
+           });
+        }
+
+        // 4. Thêm event vào state
         const addedEvent = {
           ...taskData,
           start: new Date(taskData.start_time),
           end: new Date(taskData.end_time),
-          collaborators: [], 
+          // ❌ Dòng cũ của bạn là: collaborators: [], 
+          // ✅ Thay bằng dòng mới này:
+          collaborators: newCollaboratorsForState, 
           ownerProfile: tempProfileMap[user.id]
         };
 
@@ -404,15 +422,22 @@ export default function Home() {
   };
 
   const handleEventHover = (event: any) => {
+      if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    // Nếu chưa chọn event nào (click), thì mới hiện hover
     if (!selectedEvent) { 
       setHoveredEvent(event);
     }
   };
 
   const handleEventMouseLeave = () => {
-    if (!selectedEvent) {
+    // Khi rời chuột khỏi Event, đừng tắt ngay. Hẹn 3 giây sau mới tắt.
+    timerRef.current = setTimeout(() => {
       setHoveredEvent(null);
-    }
+    }, 3000); // 3000ms = 3 giây
   };
 
   const EventComponent = ({ event }: { event: any }) => {
@@ -700,20 +725,6 @@ function BackgroundCustomizer({ session, streak }: { session: Session | null, st
             <span className={styles.dashboardLink}>Invite Friends</span>
           </Link>
           <div className={styles.logoutContainer}> 
-              
-              <LogoutButton
-                session={session} 
-                style={{
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  width: '100%',
-                  fontWeight: 'bold',
-                }}
-              >
-                 Loggout
-              </LogoutButton>
           </div>
           </div>
 
@@ -1149,7 +1160,7 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
 
   return (
     <div className={styles.editForm}>
-      <h3>{isOwner ? "Edit Task" : "View Task Details"}</h3>
+      <h3>{isOwner ? "Edit Task" : "Edit Task"}</h3>
       {!isOwner && (
         <p style={{ fontStyle: 'italic', color: '#666', fontSize: '0.9em' }}>
           You only have view access because you are not the owner.
