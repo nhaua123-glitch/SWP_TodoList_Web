@@ -83,7 +83,6 @@
   color: var(--text-dark);
   flex-grow: 1;
   text-align: center;
-  
 }
 
 .calendarContainer :global(.rbc-btn-group) {
@@ -121,7 +120,15 @@
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
 }
 
-.calendarContainer :global(.rbc-toolbar .rbc-active) {
+/* Style khi NHẤN CHUỘT XUỐNG (Click) */
+.calendarContainer :global(.rbc-toolbar button:active) {
+  transform: translateY(1px); /* Hơi nhấn xuống 1px */
+  filter: brightness(0.95); /* Hơi tối đi một chút */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Sửa lỗi: Nút active (Month/Week/Day) */
+.calendarContainer :global(.rbc-toolbar button.rbc-active) {
   background: var(--panel-dark-bg); /* Style panel tối */
   color: #ffffff;
   box-shadow: var(--panel-dark-shadow);
@@ -502,10 +509,12 @@
   filter: brightness(1.1);
 }
 
+/* ĐÃ QUAY LẠI STYLE GỐC VÀ CĂN GIỮA */
 .iconBar {
   width: 50%;
   height: 2px;
   background: white;
+  margin: 0 auto; /* Thêm dòng này để căn giữa */
 }
 
 /* Tiêu đề trong sidebar cài đặt */
@@ -532,7 +541,7 @@
   cursor: pointer;
 }
 .dashboardHeader:active {
-  background: rgba(var(--text-dark-rgb), 0.1); 
+  background: rgba(var(--text-dark-rgb), 0.1);
   color: var(--accent);
 }
 
@@ -641,9 +650,15 @@
 /* STREAK COUNTER */
 /* =================================== */
 @keyframes pulse-flame {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .streakContainer {
@@ -735,19 +750,19 @@
     text-align: center;
   }
   /* =================================== */
-/* ANIMATION NHẤP NHÁY KHI HOVER */
-/* =================================== */
-@keyframes hover-pulse {
-  0% {
-    background-color: rgba(var(--text-dark-rgb), 0.05);
+  /* ANIMATION NHẤP NHÁY KHI HOVER */
+  /* =================================== */
+  @keyframes hover-pulse {
+    0% {
+      background-color: rgba(var(--text-dark-rgb), 0.05);
+    }
+    50% {
+      /* Sáng lên màu xanh accent ở giữa nhịp */
+      background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent);
+    }
+    100% {
+      background-color: rgba(var(--text-dark-rgb), 0.05);
+    }
   }
-  50% {
-    /* Sáng lên màu xanh accent ở giữa nhịp */
-    background-color: color-mix(in srgb, var(--accent) 20%, transparent);
-    box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent);
-  }
-  100% {
-    background-color: rgba(var(--text-dark-rgb), 0.05);
-  }
-}
 }
