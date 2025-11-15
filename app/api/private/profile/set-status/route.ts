@@ -35,16 +35,27 @@ export async function POST(req: Request) {
 
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { error: upsertError } = await supabase
+    const now = new Date().toISOString();
+    
+    // Thử update trước
+    const { data: updateData, error: updateError } = await supabase
       .from("user_status")
-      .upsert(
-        { user_id: user.id, status, last_seen: new Date().toISOString() },
-        { onConflict: "user_id" }
-      );
+      .update({ status, last_seen: now })
+      .eq("user_id", user.id);
 
-    if (upsertError) {
-      console.error("Supabase error:", upsertError);
-      return NextResponse.json({ error: upsertError.message }, { status: 500 });
+    // Nếu không có record cũ, insert mới
+    if (updateData && updateData.length === 0) {
+      const { error: insertError } = await supabase
+        .from("user_status")
+        .insert({ user_id: user.id, status, last_seen: now });
+      
+      if (insertError) {
+        console.error("Insert error:", insertError);
+        return NextResponse.json({ error: insertError.message }, { status: 500 });
+      }
+    } else if (updateError) {
+      console.error("Update error:", updateError);
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
     const { data: statusData, error: selectError } = await supabase
