@@ -38,17 +38,29 @@ export default function LogoutButton({
     if (!confirmed) return;
 
     setLoading(true);
-    const { error } = await supabase.auth.signOut();
+    try {
+      // Gọi server logout route thay vì signOut trực tiếp
+      // Cách này đảm bảo status được cập nhật TRƯỚC signOut
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-    if (error) {
-      console.error('Logout error:', error);
+      if (!response.ok) {
+        console.error('Logout API failed:', response.status);
+        alert('Có lỗi xảy ra khi đăng xuất.');
+        setLoading(false);
+        return;
+      }
+
+      // Nếu server logout thành công, redirect
+      router.push('/login');
+      router.refresh();
+    } catch (err) {
+      console.error('Logout exception:', err);
       alert('Có lỗi xảy ra khi đăng xuất.');
-    } else {
-      router.push('/login'); 
-      router.refresh(); 
+      setLoading(false);
     }
-    
-    setLoading(false);
   }
 
   // 3. Nếu không có session, không hiển thị gì cả

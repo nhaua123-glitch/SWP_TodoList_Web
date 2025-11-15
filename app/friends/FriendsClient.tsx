@@ -17,6 +17,7 @@ export default function FriendsClient({ user, supabase }: Props) {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMsg, setInviteMsg] = useState("");
   const [profilesMap, setProfilesMap] = useState<Record<string, any>>({});
+  const [statusMap, setStatusMap] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (user?.id) {
@@ -68,6 +69,20 @@ export default function FriendsClient({ user, supabase }: Props) {
           map[p.id] = p;
         }
         setProfilesMap(map);
+      }
+
+      // Fetch status for all friends
+      const { data: statusData, error: statusError } = await supabase
+        .from("user_status")
+        .select("user_id, status, last_seen")
+        .in("user_id", ids);
+
+      if (!statusError && statusData) {
+        const statusMapTemp: Record<string, any> = {};
+        for (const s of statusData) {
+          statusMapTemp[s.user_id] = s;
+        }
+        setStatusMap(statusMapTemp);
       }
     }
   };
@@ -137,6 +152,27 @@ export default function FriendsClient({ user, supabase }: Props) {
 
   const formatEmail = (id: string, fallbackEmail?: string | null) => {
     return profilesMap[id]?.email || fallbackEmail || id;
+  };
+
+  const getStatusInfo = (userId: string) => {
+    const status = statusMap[userId];
+    if (!status) return { text: "offline", icon: "⚫", color: "gray" };
+    
+    if (status.status === "online") {
+      return { text: "online", icon: "🟢", color: "green" };
+    } else {
+      const lastSeen = new Date(status.last_seen);
+      const now = new Date();
+      const diffMinutes = Math.floor((now.getTime() - lastSeen.getTime()) / 60000);
+      
+      let timeText = "offline";
+      if (diffMinutes < 5) timeText = "just now";
+      else if (diffMinutes < 60) timeText = `${diffMinutes}m ago`;
+      else if (diffMinutes < 1440) timeText = `${Math.floor(diffMinutes / 60)}h ago`;
+      else timeText = `${Math.floor(diffMinutes / 1440)}d ago`;
+      
+      return { text: timeText, icon: "⚫", color: "gray" };
+    }
   };
 
   return (
@@ -284,6 +320,7 @@ export default function FriendsClient({ user, supabase }: Props) {
             <ul className={styles.list}>
               {friends.map((f) => {
                 const friendId = f.sender_id === user.id ? f.receiver_id : f.sender_id;
+                const statusInfo = getStatusInfo(friendId);
                 return (
                   <li key={f.id} className={styles.listItem}>
                     <div className={styles.cardMeta}>
@@ -292,7 +329,7 @@ export default function FriendsClient({ user, supabase }: Props) {
                       </span>
                       <div className={styles.cardText}>
                         <span className={styles.cardTitle}>{formatEmail(friendId, f.receiver_email || f.sender_email)}</span>
-                        <span className={styles.cardSubtitle}>Friend</span>
+                        <span className={styles.cardSubtitle}>{statusInfo.icon} {statusInfo.text}</span>
                       </div>
                     </div>
                     <div className={styles.actionGroup}>

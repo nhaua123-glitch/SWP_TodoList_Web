@@ -31,8 +31,34 @@ export async function POST(request: NextRequest) {
   }
 )
 
-  // 3. Gọi signOut()
-  // Hàm này sẽ tự động tìm session từ cookie và xóa nó
+  // 3. Trước khi signOut, cập nhật trạng thái user thành 'offline' (cập nhật last_seen)
+  try {
+    const { data, error: userError } = await supabase.auth.getUser();
+    if (!userError && data?.user?.id) {
+      const userId = data.user.id;
+      const now = new Date().toISOString();
+      
+      // Cố gắng update trước
+      const { data: updateData, error: updateError } = await supabase
+        .from('user_status')
+        .update({ status: 'offline', last_seen: now })
+        .eq('user_id', userId);
+      
+      // Nếu update không tìm thấy record (không có record cũ), insert một record mới
+      if (updateData && updateData.length === 0) {
+        await supabase
+          .from('user_status')
+          .insert({ user_id: userId, status: 'offline', last_seen: now });
+      }
+      
+      console.log('User status updated to offline:', userId);
+    } else {
+      console.warn('Could not get user for logout:', userError);
+    }
+  } catch (err) {
+    console.error('Error setting user status offline before logout:', err);
+  }
+
   const { error } = await supabase.auth.signOut();
 
   if (error) {
