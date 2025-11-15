@@ -27,7 +27,7 @@ export default function Home() {
   const router = useRouter();
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<any>(null); 
-  const [hoveredEvent, setHoveredEvent] = useState<any>(null);   
+  const [hoveredEvent, setHoveredEvent] = useState<any>(null);   
   const [points, setPoints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false); // (State này có thể không cần nữa)
@@ -66,8 +66,8 @@ export default function Home() {
     end: "",
     color: "#3174ad",
     type: "work",
-    visibility: "PRIVATE",      
-    collaborators: [],                      
+    visibility: "PRIVATE",      
+    collaborators: [],                      
   });
 
   useEffect(() => {
@@ -350,8 +350,6 @@ export default function Home() {
           ...taskData,
           start: new Date(taskData.start_time),
           end: new Date(taskData.end_time),
-          // ❌ Dòng cũ của bạn là: collaborators: [], 
-          // ✅ Thay bằng dòng mới này:
           collaborators: newCollaboratorsForState, 
           ownerProfile: tempProfileMap[user.id]
         };
@@ -372,7 +370,7 @@ export default function Home() {
 
   const handleSelectSlot = (slotInfo: any) => {
     setSelectedEvent(null); 
-    setHoveredEvent(null);  
+    setHoveredEvent(null);  
     setNewTask({
       title: "",
       description: "",
@@ -396,7 +394,7 @@ export default function Home() {
       alert("Only the owner can change the task time!");
       // Dừng hàm lại, không cập nhật state và không gọi Supabase
       // Giao diện calendar sẽ tự động snap event về vị trí cũ
-      return;   
+      return;   
     }
     const updatedEvents = events.map((existingEvent) =>
       existingEvent.id === event.id ? { ...existingEvent, start, end, isAllDay } : existingEvent
@@ -447,7 +445,7 @@ export default function Home() {
       <span
         title={`📌 ${event.title}\n🗓 ${start} - ${end}\n📝 ${event.description || "No description"}`}
         style={{ cursor: "pointer", display: "block", height: "100%" }} 
-        onMouseEnter={() => handleEventHover(event)}  
+        onMouseEnter={() => handleEventHover(event)}  
         onMouseLeave={handleEventMouseLeave}
       >
         {taskTypeIcons[event.type] || "🔹"} {event.title}
@@ -509,7 +507,7 @@ export default function Home() {
           ) : hoveredEvent ? (
             <TaskDetailsView 
               event={hoveredEvent}
-              supabase={supabase}    
+              supabase={supabase}    
               currentUser={currentUser}
               myUsername={myUsername}
               myAvatarUrl={myAvatarUrl}
@@ -536,7 +534,7 @@ export default function Home() {
             eventPropGetter={eventStyleGetter}
             onSelectEvent={(event) => {
               setSelectedEvent(event); 
-              setHoveredEvent(null);  
+              setHoveredEvent(null);  
             }}
             selectable
             onSelectSlot={handleSelectSlot} 
@@ -622,7 +620,7 @@ function BackgroundCustomizer({ session, streak }: { session: Session | null, st
           display: 'flex', 
           flexDirection: 'column', 
           justifyContent: 'space-around', 
-          width: '50%',
+          width: '100%',
           height: '50%',
           margin: 'auto'
         }}
@@ -759,28 +757,28 @@ function TaskDetailsView({ event, supabase, currentUser, myUsername, myAvatarUrl
       </div>
 
       <div style={{ marginTop: 10 }}>
-              <p><strong>Collaborators:</strong></p>
-              {event.collaborators && event.collaborators.length > 0 ? (
-                <ul style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px' }}>
-                  {event.collaborators.map((c: any) => (
-                    <li key={c.user_id} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <img 
-                          src={c.profile?.avatar_url || 'https://placehold.co/20x20?text=C'} 
-                          alt={c.profile?.username || 'Collab'}
-                          style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }}
-                        />
-                      <span>
-                        {c.profile?.username || c.profile?.email || "Bạn ẩn danh"}
-                        <small style={{ color: "#666", marginLeft: 4 }}>
-                          ({c.role === 'EDITOR' ? 'Edit' : 'View only'})
-                        </small>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No collaborators.</p>
-              )}
+            <p><strong>Collaborators:</strong></p>
+            {event.collaborators && event.collaborators.length > 0 ? (
+              <ul style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px' }}>
+                {event.collaborators.map((c: any) => (
+                  <li key={c.user_id} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <img 
+                        src={c.profile?.avatar_url || 'https://placehold.co/20x20?text=C'} 
+                        alt={c.profile?.username || 'Collab'}
+                        style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }}
+                      />
+                    <span>
+                      {c.profile?.username || c.profile?.email || "Bạn ẩn danh"}
+                      <small style={{ color: "#666", marginLeft: 4 }}>
+                        ({c.role === 'EDITOR' ? 'Edit' : 'View only'})
+                      </small>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No collaborators.</p>
+            )}
         </div>
 
       <TaskComments
@@ -978,7 +976,7 @@ interface EditModalProps {
   events: Task[];
 }
 
-function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, supabase, friendsList = [], currentUser, myUsername, myAvatarUrl }: EditModalProps & { supabase: any, friendsList?: any[], currentUser?: any, myUsername: string, myAvatarUrl: string }) {  
+function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, supabase, friendsList = [], currentUser, myUsername, myAvatarUrl }: EditModalProps & { supabase: any, friendsList?: any[], currentUser?: any, myUsername: string, myAvatarUrl: string }) {  
   const [editingEvent, setEditingEvent] = useState<any>(selectedEvent);
   const [localCollabRoles, setLocalCollabRoles] = useState<Record<string, string>>({});
 
@@ -1178,7 +1176,7 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
             {editingEvent.ownerProfile?.username || 'Chủ sở hữu ẩn danh'}
           </span>
         </div>
-      </div>    
+      </div>    
 
       <label>
         Title:
@@ -1244,22 +1242,22 @@ function EditModal({ selectedEvent, setEvents, setShowModal, setPoints, events, 
                     />
                     
                     <label 
-                        htmlFor={`friend-edit-${f.id}`} 
-                        style={{ 
-                          display: 'flex', 
-                          flexDirection: 'row',      
-                          alignItems: 'center',   
-                          gap: 6, 
-                          cursor: 'pointer', 
-                          flex: 1 
-                        }}
-                      >
-                        <img 
-                          src={f.avatar_url || 'https://placehold.co/24x24?text=F'} 
-                          alt={f.name}
-                          style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
-                        />
-                        <span>{f.name}</span>
+                      htmlFor={`friend-edit-${f.id}`} 
+                      style={{ 
+                        display: 'flex', 
+                        flexDirection: 'row',      
+                        alignItems: 'center',   
+                        gap: 6, 
+                        cursor: 'pointer', 
+                        flex: 1 
+                      }}
+                    >
+                      <img 
+                        src={f.avatar_url || 'https://placehold.co/24x24?text=F'} 
+                        alt={f.name}
+                        style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
+                      />
+                      <span>{f.name}</span>
                     </label>
                     
                     {/* Hiển thị dropdown chọn Role NẾU họ được check */}
@@ -1433,11 +1431,11 @@ function TaskComments({ supabase, task, currentUser, myUsername, myAvatarUrl, sh
       
       {/* Danh sách comments */}
       <div style={{ 
-          maxHeight: '150px',     
-          overflowY: 'auto',       
+          maxHeight: '150px',     
+          overflowY: 'auto',       
           marginBottom: 10, 
-          padding: '8px',          
-          borderRadius: '5px',     
+          padding: '8px',          
+          borderRadius: '5px',     
           background: '#f5f2f2ff' 
       }}>
         {loading && <p>Loading...</p>}
@@ -1471,4 +1469,3 @@ function TaskComments({ supabase, task, currentUser, myUsername, myAvatarUrl, sh
     </div>
   );
 }
-
