@@ -94,6 +94,29 @@ export default function Home() {
     getSessionAndData(); 
   }, []);
 
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const updateStatus = async () => {
+      try {
+        await supabase
+          .from("user_status")
+          .upsert({
+            user_id: currentUser.id,
+            status: "online",
+            last_seen: new Date().toISOString(),
+          });
+      } catch (err) {
+        console.error("Lỗi cập nhật trạng thái online:", err);
+      }
+    };
+
+    updateStatus();
+    const interval = setInterval(updateStatus, 60000);
+
+    return () => clearInterval(interval);
+  }, [currentUser, supabase]);
+
   // (Profile save + load now lives inside BackgroundCustomizer)
 
   console.log("Dữ liệu friendsList trong Form:", friendsList);

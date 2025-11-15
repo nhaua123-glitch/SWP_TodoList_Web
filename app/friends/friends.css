@@ -138,6 +138,39 @@ body {
   gap: 10px;
 }
 
+.friends-scope .friend-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.friends-scope .friend-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.friends-scope .friend-status.online {
+  background-color: #e6fffa;
+  color: #047857;
+}
+
+.friends-scope .friend-status.online .friend-status-dot {
+  background-color: #10b981;
+}
+
+.friends-scope .friend-status.offline {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.friends-scope .friend-status.offline .friend-status-dot {
+  background-color: #9ca3af;
+}
+
 .friends-scope .friend-icon {
   display: flex;
   align-items: center;

@@ -24,6 +24,30 @@ export default function FriendsClient({ user, supabase }: Props) {
     }
   }, [user, supabase]); // Thêm supabase vào dependency array cho an toàn
 
+  // Heartbeat ngay trên trang Friends để cập nhật trạng thái online cho chính user hiện tại
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const updateStatus = async () => {
+      try {
+        await supabase
+          .from("user_status")
+          .upsert({
+            user_id: user.id,
+            status: "online",
+            last_seen: new Date().toISOString(),
+          });
+      } catch (err) {
+        console.error("[FriendsClient] Lỗi heartbeat user_status:", err);
+      }
+    };
+
+    updateStatus();
+    const interval = setInterval(updateStatus, 60000);
+
+    return () => clearInterval(interval);
+  }, [user, supabase]);
+
   // ✅ Lấy toàn bộ bạn bè & lời mời
   const fetchFriends = async () => {
     const { data, error } = await supabase
@@ -62,11 +86,46 @@ export default function FriendsClient({ user, supabase }: Props) {
         .select("id, email, username")
         .in("id", ids);
 
+      const { data: statusData, error: statusError } = await supabase
+        .from("user_status")
+        .select("user_id, status, last_seen")
+        .in("user_id", ids);
+
+      console.log("[FriendsClient] friend IDs:", ids);
+      console.log("[FriendsClient] statusData from user_status:", statusData, statusError);
+
       if (!profilesError && profilesData) {
         const map: Record<string, any> = {};
-        for (const p of profilesData) {
-          map[p.id] = p;
+
+        const statusMap: Record<string, { status: string; last_seen: string | null }> = {};
+        for (const s of statusData) {
+          statusMap[s.user_id] = { status: s.status, last_seen: s.last_seen } as any;
         }
+
+        for (const p of profilesData) {
+          const statusEntry = statusMap[p.id];
+          let onlineStatus = "offline";
+
+          if (statusEntry?.last_seen) {
+            const lastSeenTime = new Date(statusEntry.last_seen).getTime();
+            const now = Date.now();
+            const diffMs = now - lastSeenTime;
+            const thresholdMs = 5 * 60 * 1000; // 5 phút gần nhất thì coi là online (dễ thấy hơn khi test)
+            console.log("[FriendsClient] lastSeen diffMs for", p.id, "=", diffMs);
+            if (diffMs <= thresholdMs) {
+              onlineStatus = "online";
+            }
+          } else if (statusEntry?.status === "online") {
+            onlineStatus = "online";
+          }
+
+          map[p.id] = {
+            ...p,
+            onlineStatus,
+          };
+        }
+
+        console.log("[FriendsClient] profilesMap computed:", map);
         setProfilesMap(map);
       }
     }
@@ -127,8 +186,6 @@ export default function FriendsClient({ user, supabase }: Props) {
     fetchFriends();
   };
 
-  // 💡 5. LỖI CÚ PHÁP LÀ Ở ĐÂY:
-  // Lệnh "return" phải nằm BÊN TRONG hàm "FriendsClient"
   return (
     <div className="friends-scope"> 
       <div className="friends-container">
@@ -207,11 +264,20 @@ export default function FriendsClient({ user, supabase }: Props) {
         ) : (
           friends.map((f) => {
             const friendId = f.sender_id === user.id ? f.receiver_id : f.sender_id;
+            const friendProfile = profilesMap[friendId];
+            const statusLabel = friendProfile?.onlineStatus === "online" ? "Online" : "Offline";
             return (
               <div key={f.id} className="friend-item">
                 <div className="friend-info">
                   <span className="friend-icon accepted">🌟</span>
-                  <span className="friend-email">{profilesMap[friendId]?.email || f.receiver_email || f.sender_email || friendId}</span>
+                  <span className="friend-email">{friendProfile?.email || f.receiver_email || f.sender_email || friendId}</span>
+                  
+                  <span
+                    className={`friend-status ${friendProfile?.onlineStatus === "online" ? "online" : "offline"}`}
+                  >
+                    <span className="friend-status-dot" />
+                    {statusLabel}
+                  </span>
                 </div>
                 <div>
                   <button onClick={() => deleteFriend(f.id)}>🗑</button>
@@ -221,6 +287,6 @@ export default function FriendsClient({ user, supabase }: Props) {
           })
         )}
       </div>
-      </div>
+    </div>
   );
-} 
+}
