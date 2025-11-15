@@ -5,6 +5,7 @@ import Link from "next/link";
 import styles from "./login.module.css";
 import { createBrowserClient } from '@supabase/ssr'
 
+// Supabase client (giữ nguyên)
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -23,17 +24,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Supabase đăng nhập → tự tạo cookie sb-access-token / sb-refresh-token
       const { data, error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (loginError) throw loginError;
-
       if (!data.session) throw new Error("Login failed: session missing");
 
-      // Supabase đã tạo cookie → middleware / page khác có thể nhận session
       console.log("Login success:", data.user);
       router.replace("/calendar"); // redirect sau khi login
     } catch (err: any) {
@@ -60,30 +58,35 @@ export default function LoginPage() {
         <div className={styles.loginForm}>
           <form className={styles.formBox} onSubmit={handleSubmit}>
             <h2>Login</h2>
-            <label>Email</label>
+            <label htmlFor="email">Email</label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
+              placeholder=""
             />
-            <label>Password</label>
+            <label htmlFor="password">Password</label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={loading}
+              placeholder=""
             />
             <button type="submit" disabled={loading}>
               {loading ? "Logging in..." : "Login"}
             </button>
 
-            <div style={{ display: "flex", alignItems: "center", margin: "16px 0" }}>
-              <div style={{ flex: 1, height: 1, background: "#eee" }} />
-              <span style={{ margin: "0 12px", color: "#aaa", fontSize: 14 }}>or</span>
-              <div style={{ flex: 1, height: 1, background: "#eee" }} />
+            {/* Dấu gạch "or" - Đã chuyển style vào CSS module */}
+            <div className={styles.divider}>
+              <div className={styles.dividerLine} />
+              <span className={styles.dividerText}>or</span>
+              <div className={styles.dividerLine} />
             </div>
 
             <button
@@ -95,12 +98,13 @@ export default function LoginPage() {
               <img
                 src="https://www.svgrepo.com/show/475656/google-color.svg"
                 alt="Google"
-                style={{ width: 20, height: 20, marginRight: 8 }}
+                width={20} // Dùng thuộc tính width/height thay vì style inline
+                height={20}
               />
               Sign in with Google
             </button>
 
-            <p className={styles.signupText} style={{ marginTop: 10 }}>
+            <p className={styles.signupText}>
               Don’t have an account?{" "}
               <Link href="/signup" className={styles.signupLink}>
                 Sign up
@@ -111,6 +115,7 @@ export default function LoginPage() {
           </form>
         </div>
 
+        {/* Cột bên phải "Nghệ" */}
         <div className={styles.rightPanel}>
           <p>A gentle way to manage your day.</p>
           <img

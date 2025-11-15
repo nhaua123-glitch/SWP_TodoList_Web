@@ -1,203 +1,323 @@
-@keyframes pastelBackgroundShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
+/* =================================== */
+/* LAYOUT CHÍNH (THEO STYLE DASHBOARD) */
+/* =================================== */
 
 .page {
-  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(-45deg, #a8edea, #fed6e3, #fef9d7, #c1e1c1);
-  background-size: 400% 400%;
-  animation: pastelBackgroundShift 20s ease infinite;
-  font-family: 'Quicksand', sans-serif;
-}
-
-.container {
-  display: flex;
-  width: 90%;
-  max-width: 1200px;
-  height: 80vh;
-  box-shadow: 0 0 25px rgba(0, 0, 0, 0.1);
-  border-radius: 20px;
+  padding: 24px;
+  background: var(--background, #f4f6f8); /* Nền xám nhạt từ globals.css */
   overflow: hidden;
-  background-color: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(12px);
+  font-family: var(--font-primary, sans-serif); /* Sử dụng font chính */
 }
 
-/* Login form */
+/* Panel Kính Mờ chính (Container) */
+.container {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-width: 1100px;
+  min-height: 70vh;
+  border-radius: 28px;
+  overflow: hidden;
+
+  background: var(--panel-bg, rgba(255, 255, 255, 0.78));
+  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.65));
+  box-shadow: var(--panel-shadow, 0 24px 40px rgba(23, 15, 45, 0.16));
+  backdrop-filter: blur(18px);
+}
+
+/* =================================== */
+/* CỘT BÊN TRÁI (FORM) */
+/* =================================== */
+
 .loginForm {
-  flex: 0 0 45%;
+  flex: 1 1 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: rgba(255, 255, 255, 0.35);
-  animation: glowForm 6s ease-in-out infinite alternate;
-}
-
-@keyframes glowForm {
-  0% { box-shadow: 0 0 12px rgba(255, 190, 220, 0.25); }
-  100% { box-shadow: 0 0 25px rgba(255, 170, 210, 0.4); }
+  padding: 40px 50px;
+  /* Kế thừa nền kính mờ của container, trong suốt hơn */
+  background: transparent;
 }
 
 .formBox {
-  background: #fff;
-  padding: 40px 50px;
-  border-radius: 20px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.1);
   width: 100%;
-  max-width: 370px;
-  transition: transform 0.3s ease;
+  max-width: 400px;
   display: flex;
   flex-direction: column;
 }
 
-.formBox:hover {
-  transform: scale(1.01);
-}
-
 .formBox h2 {
-  margin-bottom: 25px;
-  font-weight: 700;
-  font-size: 28px;
-  text-align: center;
-  color: #7a8c99;
+  margin: 0;
+  margin-bottom: 32px;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  text-align: left;
+  color: var(--text-dark, #1f1a34);
 }
 
 .formBox label {
   margin-bottom: 8px;
   font-weight: 600;
-  font-size: 15px;
-  color: #7a8c99;
+  font-size: 13px;
+  color: var(--text-muted, rgba(31, 26, 52, 0.7));
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
-.formBox input[type="email"], .formBox input[type="password"] {
-  padding: 12px;
+.formBox input[type="email"],
+.formBox input[type="password"] {
+  padding: 12px 16px;
   margin-bottom: 20px;
-  border: 2px solid #cbd5e1;
+  border: 1px solid rgba(var(--text-dark-rgb, 31, 26, 52), 0.15); /* Dùng biến RGB */
   border-radius: 12px;
   font-size: 16px;
+  background: #ffffff; /* Nền trắng rõ ràng */
+  color: var(--text-dark, #1f1a34);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.formBox input::placeholder {
+  color: rgba(var(--text-muted-rgb, 31, 26, 52), 0.5); /* Placeholder mờ hơn */
 }
 
 .formBox input:focus {
-  border-color: #a8edea;
+  border-color: var(--accent, #8ab8ff);
   outline: none;
-  box-shadow: 0 0 6px #a8edea;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #8ab8ff) 30%, transparent);
 }
 
-.formBox button {
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  background-color: #fed6e3;
-  color: #7a8c99;
-  font-weight: 700;
-  font-size: 18px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.15s ease;
-  box-shadow: 0 4px 15px rgba(254, 214, 227, 0.5);
-}
-
-.formBox button:hover {
-  background-color: #fbb1c1;
-  transform: translateY(-2px);
-}
-
-.error {
-  margin-top: 15px;
-  color: #e53935;
-  font-weight: bold;
-  text-align: center;
-}
-
-/* Right panel */
-.rightPanel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  padding: 40px;
-  color: #5c6b73;
-  text-align: center;
-}
-
-.rightPanel p {
-  font-family: 'Great Vibes', cursive;
-  font-size: 35px;
-  color: #b085b7;
-  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
-  margin-top: 10px;
-}
-
-.illustration {
+/* Nút Login (Style .logoutButton từ Dashboard) */
+.formBox button[type="submit"] {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center center; /* cắt đều 2 bên thay vì lệch đầu */
-  border-radius: 20px;
+  padding: 14px 18px; /* Tăng padding */
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: var(--button-dark-bg, rgba(20, 18, 36, 0.75)); /* Dùng biến custom */
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow: 0 12px 24px var(--button-dark-shadow, rgba(10, 7, 25, 0.18));
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease, background 0.2s ease;
+  cursor: pointer;
 }
 
+.formBox button[type="submit"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 26px var(--button-dark-shadow-hover, rgba(10, 7, 25, 0.26));
+  filter: brightness(1.07);
+  background: var(--button-dark-bg-hover, rgba(20, 18, 36, 0.85));
+}
 
-/* Google button */
+.formBox button[type="submit"]:disabled {
+  opacity: 0.6; /* Giảm opacity khi disabled */
+  cursor: not-allowed;
+  transform: none; /* Bỏ hiệu ứng hover khi disabled */
+  box-shadow: none;
+}
+
+/* Dấu gạch "or" */
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+}
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: rgba(var(--text-dark-rgb, 31, 26, 52), 0.1);
+}
+.dividerText {
+  margin: 0 12px;
+  color: var(--text-muted, #aaa);
+  font-size: 14px;
+}
+
+/* Nút Google (Style .navButton từ Dashboard) */
 .googleBtn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  background: #fff;
-  border: 2px solid #cbd5e1;
-  color: #5c6b73;
-  padding: 12px 0;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 17px;
+  gap: 10px; /* Tăng khoảng cách icon */
+  padding: 12px 18px; /* Tăng padding */
+  border-radius: 999px;
+  border: 1px solid var(--button-accent-border, color-mix(in srgb, var(--accent, #8ab8ff) 40%, rgba(255, 255, 255, 0.3)));
+  background: var(--button-accent-bg, color-mix(in srgb, var(--accent, #8ab8ff) 18%, rgba(255, 255, 255, 0.82)));
+  color: var(--text-dark, #1f2333); /* Màu chữ đậm */
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow: 0 8px 18px var(--button-accent-shadow, rgba(0, 0, 0, 0.08));
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, transform 0.15s;
-  margin-bottom: 8px;
-  box-shadow: 0 2px 10px rgba(168, 237, 234, 0.08);
 }
 
 .googleBtn:hover {
-  background: #f1f5f9;
-  border-color: #a8edea;
-  transform: translateY(-2px) scale(1.01);
+  transform: translateY(-2px);
+  background: var(--button-accent-bg-hover, color-mix(in srgb, var(--accent, #8ab8ff) 32%, rgba(255, 255, 255, 0.9)));
+  box-shadow: 0 10px 22px var(--button-accent-shadow-hover, rgba(0, 0, 0, 0.12));
 }
 
-/* Signup text */
+.googleBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Chữ đăng ký */
 .signupText {
   text-align: center;
-  font-size: 16px;
-  margin-top: 12px;
-  color: #010101;
+  font-size: 15px;
+  margin-top: 20px; /* Tăng khoảng cách */
+  color: var(--text-muted, #010101);
 }
 
 .signupLink {
-  color: #ef46c8;
+  /* MÀU MỚI: Màu tím hồng nổi bật */
+  color: #ef46c8; /* Hoặc dùng một biến như var(--secondary-accent) */
   font-weight: 700;
+  text-decoration: none;
+  transition: text-decoration 0.2s ease;
 }
-
 .signupLink:hover {
   text-decoration: underline;
 }
 
-@media screen and (max-width: 768px) {
+.error {
+  margin-top: 18px; /* Tăng khoảng cách */
+  color: #e53935;
+  font-weight: 600;
+  text-align: center;
+  background: rgba(220, 53, 69, 0.1);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+/* =================================== */
+/* CỘT BÊN PHẢI (ILLUSTRATION) */
+/* =================================== */
+
+.rightPanel {
+  flex: 1 1 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  color: var(--text-dark-on-accent, #14112d); /* Màu text trên nền accent */
+  text-align: center;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-left: 1px solid rgba(255, 255, 255, 0.2); /* Viền mờ ngăn cách */
+
+  /* Nền Gradient "Nghệ" (Style .hero từ Dashboard) */
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent, #8ab8ff) 70%, #ffffff 30%),
+    color-mix(in srgb, var(--accent, #8ab8ff) 25%, #1d1b27 75%)
+  );
+}
+
+/* Tia sáng (Style .hero::before từ Dashboard) */
+.rightPanel::before {
+  content: "";
+  position: absolute;
+  inset: -40% -25% 45% 55%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.7) 0%,
+    rgba(255, 255, 255, 0.2) 55%,
+    transparent 80%
+  );
+  filter: blur(12px);
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.rightPanel p {
+  position: relative;
+  z-index: 1;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--text-dark-on-accent, #14112d);
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.3);
+  margin-bottom: 24px;
+}
+
+.illustration {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 450px;
+  height: auto;
+  object-fit: cover;
+  border-radius: 20px;
+  box-shadow: 0 24px 40px rgba(23, 15, 45, 0.16);
+}
+
+/* =================================== */
+/* RESPONSIVE */
+/* =================================== */
+@media screen and (max-width: 900px) {
   .container {
     flex-direction: column;
     height: auto;
+    max-width: 500px;
+    min-height: 0;
   }
 
-  .loginForm, .rightPanel {
+  .loginForm {
     flex: unset;
     width: 100%;
-    padding: 30px;
+    padding: 40px 30px;
+  }
+  
+  .rightPanel {
+    flex: unset;
+    width: 100%;
+    padding: 40px 30px;
+    border-left: none; /* Bỏ viền trái khi xếp chồng */
+    border-top: 1px solid rgba(255, 255, 255, 0.2); /* Thêm viền trên thay thế */
   }
 
   .rightPanel p {
     font-size: 24px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .loginForm {
+    padding: 30px 20px;
+  }
+  .formBox h2 {
+    font-size: 32px;
+    margin-bottom: 24px;
+  }
+  .formBox label, .formBox input {
+    font-size: 15px;
+  }
+  .formBox button[type="submit"], .googleBtn {
+    font-size: 15px;
+    padding: 12px 16px;
+  }
+  .signupText {
+    font-size: 14px;
+  }
+  .rightPanel {
+    padding: 30px 20px;
+  }
+  .rightPanel p {
+    font-size: 20px;
+  }
+  .illustration {
+    max-width: 300px;
   }
 }
