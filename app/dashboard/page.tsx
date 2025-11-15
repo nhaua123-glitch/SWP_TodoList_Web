@@ -196,18 +196,14 @@ export default function DashboardPage() {
               <span aria-hidden>📅</span>
               Calendar
             </Link>
-            <Link href="/list" className={styles.navButton}>
-              <span aria-hidden>📝</span>
-              Task list
-            </Link>
             <Link href="/friends" className={styles.navButton}>
               <span aria-hidden>🤝</span>
               Friends
             </Link>
+            <Link href="/calendar" className={styles.backButton}>
+          ← Back to Calendar
+          </Link>
           </div>
-          <LogoutButton session={session} className={styles.logoutButton}>
-            Logout
-          </LogoutButton>
         </div>
       </header>
 
